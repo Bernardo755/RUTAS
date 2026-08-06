@@ -22,14 +22,19 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-        input[type="text"], textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        input[type="text"], textarea, select { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
         textarea { resize: vertical; font-family: monospace; white-space: pre; }
         .checkbox-group { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #1967d2; }
         button.action-btn { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
         button.action-btn:hover { background-color: var(--hover); }
         
-        /* Mapas */
-        #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
+        /* Mapas y Controles de Capas */
+        .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
+        .map-header h3 { margin: 0; border: none; padding: 0; }
+        .layer-selector { display: flex; align-items: center; gap: 8px; }
+        .layer-selector select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; background: white; cursor: pointer; }
+        
+        #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border); z-index: 1; }
         
         .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -62,6 +67,10 @@
             <div class="form-group"><label>Latitud (Origen):</label><input type="text" id="m_origenLat" placeholder="Ej. 19.4326"></div>
             <div class="form-group"><label>Longitud (Origen):</label><input type="text" id="m_origenLon" placeholder="Ej. -99.1332"></div>
         </div>
+        <div class="form-group">
+            <label>Nombre del Origen (Opcional):</label>
+            <input type="text" id="m_nombreOrigen" placeholder="Ej. Almacén Central">
+        </div>
 
         <h3>2. Puntos a Visitar</h3>
         <div class="form-group">
@@ -80,7 +89,17 @@
         <div id="m_errorMsg" class="error"></div>
 
         <div id="m_resultados" class="resultados">
-            <h3>Visualizador de Ruta Múltiple (Satelital)</h3>
+            <div class="map-header">
+                <h3>Visualizador de Ruta Múltiple</h3>
+                <div class="layer-selector">
+                    <label>Vista:</label>
+                    <select id="m_mapStyle" onchange="cambiarCapaMapa('multi', this.value)">
+                        <option value="satellite">Satelital (Esri)</option>
+                        <option value="osm">Estándar (OpenStreetMap)</option>
+                        <option value="light">Claro (CartoDB)</option>
+                    </select>
+                </div>
+            </div>
             <div id="map"></div>
             <h3>Detalle de Puntos y Distancias</h3>
             <table>
@@ -121,7 +140,17 @@
         <div id="s_errorMsg" class="error"></div>
 
         <div id="s_resultados" class="resultados">
-            <h3>Visualizador de Destinos y Rutas desde el Origen (Satelital)</h3>
+            <div class="map-header">
+                <h3>Visualizador de Destinos y Rutas desde el Origen</h3>
+                <div class="layer-selector">
+                    <label>Vista:</label>
+                    <select id="s_mapStyle" onchange="cambiarCapaMapa('single', this.value)">
+                        <option value="satellite">Satelital (Esri)</option>
+                        <option value="osm">Estándar (OpenStreetMap)</option>
+                        <option value="light">Claro (CartoDB)</option>
+                    </select>
+                </div>
+            </div>
             <div id="mapSingle"></div>
             <h3>Detalle de Distancias por Destino</h3>
             <table>
@@ -147,7 +176,17 @@
         <div id="k_errorMsg" class="error"></div>
 
         <div id="k_resultados" class="resultados">
-            <h3>Visualizador de Puntos KML en Mapa Satelital</h3>
+            <div class="map-header">
+                <h3>Visualizador de Puntos KML</h3>
+                <div class="layer-selector">
+                    <label>Vista:</label>
+                    <select id="k_mapStyle" onchange="cambiarCapaMapa('kml', this.value)">
+                        <option value="satellite">Satelital (Esri)</option>
+                        <option value="osm">Estándar (OpenStreetMap)</option>
+                        <option value="light">Claro (CartoDB)</option>
+                    </select>
+                </div>
+            </div>
             <div id="mapKml"></div>
             <h3>Detalle de Puntos Procesados</h3>
             <table>
@@ -171,12 +210,78 @@
     let routeLayerSingle = [], markersSingle = [];
     let markersKml = [];
 
-    // Capa Satelital (Esri World Imagery) para todas las vistas
-    function agregarCapaSatelital(mapa) {
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-eGIS, and the GIS User Community'
-        }).addTo(mapa);
+    // Almacena las capas actuales de cada mapa para permitir cambios dinámicos
+    let currentLayers = { multi: null, single: null, kml: null };
+
+    function obtenerCapaTile(estilo) {
+        if (estilo === 'osm') {
+            return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+        } else if (estilo === 'light') {
+            return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                attribution: '&copy; CARTO'
+            });
+        } else {
+            // Por defecto: Satelital (Esri World Imagery)
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-eGIS, and GIS User Community'
+            });
+        }
+    }
+
+    function inicializarMapaSiNoExiste(idContenedor, claveMapa, lat, lon) {
+        let mapa = null;
+        let selectEstilo = document.getElementById(claveMapa + '_mapStyle');
+        let estiloSeleccionado = selectEstilo ? selectEstilo.value : 'satellite';
+
+        if (claveMapa === 'multi') {
+            if (!mapMulti) {
+                mapMulti = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.multi = obtenerCapaTile(estiloSeleccionado).addTo(mapMulti);
+            } else {
+                mapMulti.setView([lat, lon], 13);
+                mapMulti.invalidateSize();
+            }
+            mapa = mapMulti;
+        } else if (claveMapa === 'single') {
+            if (!mapSingle) {
+                mapSingle = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.single = obtenerCapaTile(estiloSeleccionado).addTo(mapSingle);
+            } else {
+                mapSingle.setView([lat, lon], 13);
+                mapSingle.invalidateSize();
+            }
+            mapa = mapSingle;
+        } else if (claveMapa === 'kml') {
+            if (!mapKml) {
+                mapKml = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.kml = obtenerCapaTile(estiloSeleccionado).addTo(mapKml);
+            } else {
+                mapKml.setView([lat, lon], 13);
+                mapKml.invalidateSize();
+            }
+            mapa = mapKml;
+        }
+        return mapa;
+    }
+
+    function cambiarCapaMapa(claveMapa, estilo) {
+        let mapa = null;
+        if (claveMapa === 'multi') mapa = mapMulti;
+        if (claveMapa === 'single') mapa = mapSingle;
+        if (claveMapa === 'kml') mapa = mapKml;
+
+        if (!mapa) return;
+
+        if (currentLayers[claveMapa]) {
+            mapa.removeLayer(currentLayers[claveMapa]);
+        }
+
+        currentLayers[claveMapa] = obtenerCapaTile(estilo).addTo(mapa);
     }
 
     function cambiarPestana(tipo) {
@@ -211,13 +316,14 @@
 
         const oLat = parseFloat(document.getElementById('m_origenLat').value.replace(',', '.'));
         const oLon = parseFloat(document.getElementById('m_origenLon').value.replace(',', '.'));
+        const nomO = document.getElementById('m_nombreOrigen').value.trim() || 'Origen Principal';
 
         if (isNaN(oLat) || isNaN(oLon)) {
             mostrarError('m', "Faltan las coordenadas de origen o son incorrectas.");
             return;
         }
 
-        let puntos = [{ tipo: 'Punto de Partida', lat: oLat, lon: oLon, nombre: 'Origen Principal' }];
+        let puntos = [{ tipo: 'Punto de Partida', lat: oLat, lon: oLon, nombre: nomO }];
 
         const texto = document.getElementById('m_waypoints').value.trim();
         if (texto) {
@@ -238,7 +344,7 @@
         }
 
         if (document.getElementById('m_regreso').checked && puntos.length > 1) {
-            puntos.push({ tipo: 'Regreso', lat: oLat, lon: oLon, nombre: 'Regreso al Origen' });
+            puntos.push({ tipo: 'Regreso', lat: oLat, lon: oLon, nombre: `Regreso a ${nomO}` });
         }
 
         if (puntos.length === 1) {
@@ -277,8 +383,8 @@
                         <td><strong>${puntos[i+1].nombre}</strong></td>
                         <td>${puntos[i+1].lat}</td>
                         <td>${puntos[i+1].lon}</td>
-                        <td style="color: #6cf; font-weight: bold;">${distKm}</td>
-                        <td style="color: #ffa500; font-weight: bold;">${durMin}</td>
+                        <td style="color: #1a73e8; font-weight: bold;">${distKm}</td>
+                        <td style="color: #e37400; font-weight: bold;">${durMin}</td>
                     </tr>
                 `;
             }
@@ -288,24 +394,18 @@
 
             document.getElementById('m_resultados').style.display = 'block';
             
-            if (!mapMulti) {
-                mapMulti = L.map('map').setView([oLat, oLon], 13);
-                agregarCapaSatelital(mapMulti);
-            } else {
-                mapMulti.setView([oLat, oLon], 13);
-                mapMulti.invalidateSize();
-            }
+            let mapa = inicializarMapaSiNoExiste('map', 'multi', oLat, oLon);
 
-            if (routeLayerMulti) mapMulti.removeLayer(routeLayerMulti);
-            markersMulti.forEach(m => mapMulti.removeLayer(m));
+            if (routeLayerMulti) mapa.removeLayer(routeLayerMulti);
+            markersMulti.forEach(m => mapa.removeLayer(m));
             markersMulti = [];
 
             let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#00ffff', weight: 5, opacity: 0.8 }).addTo(mapMulti);
-            mapMulti.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
+            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5, opacity: 0.8 }).addTo(mapa);
+            mapa.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
             puntos.forEach((p, index) => {
-                let marker = L.marker([p.lat, p.lon]).addTo(mapMulti)
+                let marker = L.marker([p.lat, p.lon]).addTo(mapa)
                     .bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
                 markersMulti.push(marker);
             });
@@ -416,8 +516,8 @@
                             <td><strong>${d.nombre}</strong></td>
                             <td>${d.lat}</td>
                             <td>${d.lon}</td>
-                            <td style="color: #6cf; font-weight: bold;">${distKm.toFixed(2)} km</td>
-                            <td style="color: #ffa500; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
+                            <td style="color: #1a73e8; font-weight: bold;">${distKm.toFixed(2)} km</td>
+                            <td style="color: #e37400; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
                             <td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 6px 12px; font-size: 12px;">🗺️ Abrir</a></td>
                         </tr>
                     `;
@@ -434,39 +534,33 @@
 
             document.getElementById('s_resultados').style.display = 'block';
 
-            if (!mapSingle) {
-                mapSingle = L.map('mapSingle').setView([oLat, oLon], 13);
-                agregarCapaSatelital(mapSingle);
-            } else {
-                mapSingle.setView([oLat, oLon], 13);
-                mapSingle.invalidateSize();
-            }
+            let mapa = inicializarMapaSiNoExiste('mapSingle', 'single', oLat, oLon);
 
             if (routeLayerSingle.length > 0) {
-                routeLayerSingle.forEach(l => mapSingle.removeLayer(l));
+                routeLayerSingle.forEach(l => mapa.removeLayer(l));
             }
             routeLayerSingle = [];
-            markersSingle.forEach(m => mapSingle.removeLayer(m));
+            markersSingle.forEach(m => mapa.removeLayer(m));
             markersSingle = [];
 
             let bounds = [[oLat, oLon]];
 
-            let markerO = L.marker([oLat, oLon]).addTo(mapSingle)
+            let markerO = L.marker([oLat, oLon]).addTo(mapa)
                 .bindPopup(`<b>Origen:</b> ${nomO}`);
             markersSingle.push(markerO);
 
             validos.forEach((v, i) => {
-                let markerD = L.marker([v.lat, v.lon]).addTo(mapSingle)
+                let markerD = L.marker([v.lat, v.lon]).addTo(mapa)
                     .bindPopup(`<b>Destino ${i+1}:</b> ${v.nombre}<br>Distancia: ${v.distKm.toFixed(2)} km`);
                 markersSingle.push(markerD);
                 bounds.push([v.lat, v.lon]);
 
                 let coordsGeoJson = v.geometry.coordinates.map(c => [c[1], c[0]]);
-                let polyline = L.polyline(coordsGeoJson, { color: '#00ffff', weight: 4, opacity: 0.7 }).addTo(mapSingle);
+                let polyline = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapa);
                 routeLayerSingle.push(polyline);
             });
 
-            mapSingle.fitBounds(bounds, { padding: [50, 50] });
+            mapa.fitBounds(bounds, { padding: [50, 50] });
 
         } catch (error) {
             document.getElementById('s_loader').style.display = 'none';
@@ -536,7 +630,7 @@
         kmlString += `<Document>\n`;
         kmlString += `  <name>Puntos Personalizados - Gestor Web</name>\n`;
 
-        puntosKml.forEach((p, idx) => {
+        puntosKml.forEach((p) => {
             kmlString += `  <Placemark>\n`;
             kmlString += `    <name><![CDATA[${p.nombre}]]></name>\n`;
             kmlString += `    <description><![CDATA[<b>Desc 1:</b> ${p.desc1}<br><b>Desc 2:</b> ${p.desc2}<br><b>Desc 3:</b> ${p.desc3}]]></description>\n`;
@@ -554,19 +648,12 @@
         
         let downloadBtn = document.getElementById('k_btnDescarga');
         downloadBtn.href = urlBlob;
-        // Se elimina la descarga automática para que sea manual al hacer clic en el botón
 
         document.getElementById('k_resultados').style.display = 'block';
 
-        if (!mapKml) {
-            mapKml = L.map('mapKml').setView([puntosKml[0].lat, puntosKml[0].lon], 13);
-            agregarCapaSatelital(mapKml);
-        } else {
-            mapKml.setView([puntosKml[0].lat, puntosKml[0].lon], 13);
-            mapKml.invalidateSize();
-        }
+        let mapa = inicializarMapaSiNoExiste('mapKml', 'kml', puntosKml[0].lat, puntosKml[0].lon);
 
-        markersKml.forEach(m => mapKml.removeLayer(m));
+        markersKml.forEach(m => mapa.removeLayer(m));
         markersKml = [];
 
         let bounds = [];
@@ -578,7 +665,7 @@
                 weight: 1.5,
                 opacity: 1,
                 fillOpacity: 0.9
-            }).addTo(mapKml)
+            }).addTo(mapa)
             .bindPopup(`<b>${p.nombre}</b><br>1: ${p.desc1}<br>2: ${p.desc2}<br>3: ${p.desc3}`);
             
             markersKml.push(marker);
@@ -586,7 +673,7 @@
         });
 
         if(bounds.length > 0) {
-            mapKml.fitBounds(bounds, { padding: [50, 50] });
+            mapa.fitBounds(bounds, { padding: [50, 50] });
         }
     }
 
