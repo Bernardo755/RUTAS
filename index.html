@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Rutas, Distancias y KML</title>
+    <title>Gestor Avanzado de Rutas, Distancias y KML</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 950px; width: 100%; }
+        .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1000px; width: 100%; }
         
         /* Pestañas */
         .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
@@ -29,7 +29,7 @@
         button.action-btn:hover { background-color: var(--hover); }
         
         /* Mapas */
-        #map, #mapSingle, #mapKml { height: 400px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
+        #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
         
         .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -37,7 +37,7 @@
         th { background-color: #f8f9fa; }
         .resumen { background: #e6f4ea; border: 1px solid #ceead6; padding: 15px; border-radius: 6px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #137333; }
         .links-container { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .btn-link { display: inline-block; background: #34a853; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; transition: 0.2s; }
+        .btn-link { display: inline-block; background: #34a853; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; }
         .btn-link:hover { background: #2d8c45; }
         .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
         .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
@@ -49,14 +49,14 @@
 <div class="container">
     <!-- Pestañas de Navegación -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
-        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Ruta A a B</button>
+        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple (Secuencial)</button>
+        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Ruta Origen a Múltiples Destinos</button>
         <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
     </div>
 
     <!-- MODO 1: RUTA MÚLTIPLE -->
     <div id="tab-multi" class="tab-content active">
-        <h2>Generador de Rutas Múltiples</h2>
+        <h2>Generador de Rutas Múltiples (Secuencial)</h2>
         <h3>1. Punto de Partida</h3>
         <div class="grid">
             <div class="form-group"><label>Latitud (Origen):</label><input type="text" id="m_origenLat" placeholder="Ej. 19.4326"></div>
@@ -95,41 +95,42 @@
         </div>
     </div>
 
-    <!-- MODO 2: RUTA PUNTO A PUNTO (A a B) -->
+    <!-- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS -->
     <div id="tab-single" class="tab-content">
-        <h2>Ruta Punto a Punto (Salida a Destino)</h2>
+        <h2>Rutas Individuales desde un Origen Fijo a Varios Destinos</h2>
+        
+        <h3>1. Punto de Partida (Fijo)</h3>
         <div class="grid">
-            <div class="form-group">
-                <h3>Punto de Salida</h3>
-                <label>Latitud:</label><input type="text" id="s_origenLat" placeholder="Ej. 19.4326">
-                <label style="margin-top:5px;">Longitud:</label><input type="text" id="s_origenLon" placeholder="Ej. -99.1332">
-                <label style="margin-top:5px;">Nombre Salida (Opcional):</label><input type="text" id="s_nombreOrigen" placeholder="Ej. Almacén Central">
-            </div>
-            <div class="form-group">
-                <h3>Punto de Destino</h3>
-                <label>Latitud:</label><input type="text" id="s_destinoLat" placeholder="Ej. 19.5012">
-                <label style="margin-top:5px;">Longitud:</label><input type="text" id="s_destinoLon" placeholder="Ej. -99.1823">
-                <label style="margin-top:5px;">Nombre Destino (Opcional):</label><input type="text" id="s_nombreDestino" placeholder="Ej. Sucursa Norte">
-            </div>
+            <div class="form-group"><label>Latitud Salida:</label><input type="text" id="s_origenLat" placeholder="Ej. 19.4326"></div>
+            <div class="form-group"><label>Longitud Salida:</label><input type="text" id="s_origenLon" placeholder="Ej. -99.1332"></div>
+        </div>
+        <div class="form-group">
+            <label>Nombre del Origen (Opcional):</label>
+            <input type="text" id="s_nombreOrigen" placeholder="Ej. Almacén Central">
         </div>
 
-        <button class="action-btn" onclick="procesarRutaSimple()">Calcular Distancia y Ver Ruta A-B</button>
-        <div id="s_loader" class="loader">Calculando tramo único... ⏳</div>
+        <h3>2. Destinos (Pegado Masivo)</h3>
+        <div class="form-group">
+            <label>Pega aquí tus destinos (Formato: Latitud, Longitud, Nombre del Destino):</label>
+            <div class="note">Ejemplo: 19.5012, -99.1823, Sucursal Norte</div>
+            <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte&#10;19.3821, -99.0912, Sucursal Sur"></textarea>
+        </div>
+
+        <button class="action-btn" onclick="procesarRutaMasivaPuntoAPunto()">Calcular Distancias y Tramos Individuales</button>
+        <div id="s_loader" class="loader">Calculando rutas independientes... ⏳</div>
         <div id="s_errorMsg" class="error"></div>
 
         <div id="s_resultados" class="resultados">
-            <h3>Visualizador de Trayecto</h3>
+            <h3>Visualizador de Destinos y Rutas desde el Origen</h3>
             <div id="mapSingle"></div>
-            <h3>Detalle del Trayecto</h3>
+            <h3>Detalle de Distancias por Destino</h3>
             <table>
                 <thead>
-                    <tr><th>Punto</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Distancia Real</th><th>Tiempo Estimado</th></tr>
+                    <tr><th>#</th><th>Destino</th><th>Latitud</th><th>Longitud</th><th>Distancia Real</th><th>Tiempo Estimado</th><th>Google Maps</th></tr>
                 </thead>
                 <tbody id="s_tablaBody"></tbody>
             </table>
             <div class="resumen" id="s_totalDistancia"></div>
-            <h3>Enlace Directo</h3>
-            <div id="s_contenedorLinks" class="links-container"></div>
         </div>
     </div>
 
@@ -139,7 +140,7 @@
         <div class="form-group">
             <label>Pega o escribe tus puntos (Formato: Latitud, Longitud, Nombre, Desc 1, Desc 2, Desc 3, Color)</label>
             <div class="note">Colores aceptados en inglés o hex (ej: red, blue, green, #ff5733, orange). Puedes dejar descripciones vacías usando comas consecutivas.</div>
-            <textarea id="k_datos" rows="6" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red&#10;19.4512, -99.1523, Biblioteca Sur, Zona Sur, Encargada Maria, Vespertino, blue"></textarea>
+            <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red&#10;19.4512, -99.1523, Biblioteca Sur, Zona Sur, Encargada Maria, Vespertino, blue"></textarea>
         </div>
 
         <button class="action-btn" onclick="procesarKML()">Generar KML, Ver en Mapa y Descargar Archivo</button>
@@ -167,7 +168,7 @@
 <script>
     let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
-    let routeLayerSingle = null, markersSingle = [];
+    let routeLayerSingle = [], markersSingle = [];
     let markersKml = [];
 
     function cambiarPestana(tipo) {
@@ -322,54 +323,107 @@
         }
     }
 
-    // --- MODO 2: RUTA PUNTO A PUNTO (A a B) ---
-    async function procesarRutaSimple() {
+    // --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS (Masivo) ---
+    async function procesarRutaMasivaPuntoAPunto() {
         document.getElementById('s_errorMsg').style.display = 'none';
         document.getElementById('s_resultados').style.display = 'none';
         document.getElementById('s_loader').style.display = 'block';
 
         const tablaBody = document.getElementById('s_tablaBody');
-        const linksContainer = document.getElementById('s_contenedorLinks');
         tablaBody.innerHTML = '';
-        linksContainer.innerHTML = '';
 
         const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
         const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
-        const dLat = parseFloat(document.getElementById('s_destinoLat').value.replace(',', '.'));
-        const dLon = parseFloat(document.getElementById('s_destinoLon').value.replace(',', '.'));
         const nomO = document.getElementById('s_nombreOrigen').value.trim() || "Punto de Salida";
-        const nomD = document.getElementById('s_nombreDestino').value.trim() || "Punto de Destino";
 
-        if (isNaN(oLat) || isNaN(oLon) || isNaN(dLat) || isNaN(dLon)) {
-            mostrarError('s', "Verifica que todas las coordenadas de salida y destino sean válidas.");
+        if (isNaN(oLat) || isNaN(oLon)) {
+            mostrarError('s', "Verifica que las coordenadas del punto de salida sean válidas.");
             return;
         }
 
-        let coordsString = `${oLon},${oLat};${dLon},${dLat}`;
-        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
+        const texto = document.getElementById('s_destinos').value.trim();
+        if (!texto) {
+            mostrarError('s', "Agrega al menos un destino en el campo de texto.");
+            return;
+        }
+
+        const lineas = texto.split('\n');
+        let destinos = [];
+        for (let i = 0; i < lineas.length; i++) {
+            const linea = lineas[i].trim();
+            if (!linea) continue;
+            const partes = linea.split(/,|\t/).map(p => p.trim());
+            if (partes.length >= 2) {
+                const lat = parseFloat(partes[0].replace(',', '.'));
+                const lon = parseFloat(partes[1].replace(',', '.'));
+                const nombre = partes[2] ? partes[2] : `Destino ${destinos.length + 1}`;
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    destinos.push({ lat, lon, nombre });
+                }
+            }
+        }
+
+        if (destinos.length === 0) {
+            mostrarError('s', "No se encontraron destinos válidos. Revisa el formato.");
+            return;
+        }
+
+        // Consultar cada destino desde el origen en paralelo
+        let promesas = destinos.map(d => {
+            let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`;
+            return fetch(urlOSRM).then(res => res.json()).then(data => ({ destino: d, data }));
+        });
 
         try {
-            let response = await fetch(urlOSRM);
-            let data = await response.json();
+            let resultadosFetch = await Promise.all(promesas);
             document.getElementById('s_loader').style.display = 'none';
 
-            if (data.code !== 'Ok') {
-                mostrarError('s', "No se pudo calcular la ruta entre ambos puntos.");
+            let distanciaTotalGlobal = 0;
+            let tiempoTotalGlobal = 0;
+            let validos = [];
+
+            resultadosFetch.forEach((item, idx) => {
+                let d = item.destino;
+                let data = item.data;
+                if (data.code === 'Ok') {
+                    let route = data.routes[0];
+                    let leg = route.legs[0];
+                    let distKm = leg.distance / 1000;
+                    let durSeg = leg.duration;
+
+                    distanciaTotalGlobal += distKm;
+                    tiempoTotalGlobal += durSeg;
+
+                    validos.push({
+                        ...d,
+                        distKm,
+                        durSeg,
+                        geometry: route.geometry
+                    });
+
+                    let gmapsUrl = `https://www.google.com/maps/dir/${oLat},${oLon}/${d.lat},${d.lon}`;
+
+                    tablaBody.innerHTML += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td><strong>${d.nombre}</strong></td>
+                            <td>${d.lat}</td>
+                            <td>${d.lon}</td>
+                            <td style="color: #1967d2; font-weight: bold;">${distKm.toFixed(2)} km</td>
+                            <td style="color: #e37400; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
+                            <td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 6px 12px; font-size: 12px;">🗺️ Abrir</a></td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (validos.length === 0) {
+                mostrarError('s', "No se pudieron calcular las rutas hacia los destinos indicados.");
                 return;
             }
 
-            let route = data.routes[0];
-            let leg = route.legs[0];
-            let distKm = (leg.distance / 1000).toFixed(2) + " km";
-            let durMin = Math.round(leg.duration / 60) + " min";
-
-            tablaBody.innerHTML = `
-                <tr><td>Salida (A)</td><td>${nomO}</td><td>${oLat}</td><td>${oLon}</td><td>-</td><td>-</td></tr>
-                <tr><td>Destino (B)</td><td>${nomD}</td><td>${dLat}</td><td>${dLon}</td><td style="color: #1967d2; font-weight: bold;">${distKm}</td><td style="color: #e37400; font-weight: bold;">${durMin}</td></tr>
-            `;
-
             document.getElementById('s_totalDistancia').innerHTML = 
-                `Distancia de Trayecto: ${distKm} | Tiempo estimado de manejo: ${durMin}`;
+                `Suma Total de Distancias: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado acumulado: ${Math.round(tiempoTotalGlobal / 60)} min`;
 
             document.getElementById('s_resultados').style.display = 'block';
 
@@ -381,29 +435,37 @@
                 mapSingle.invalidateSize();
             }
 
-            if (routeLayerSingle) mapSingle.removeLayer(routeLayerSingle);
+            if (routeLayerSingle.length > 0) {
+                routeLayerSingle.forEach(l => mapSingle.removeLayer(l));
+            }
+            routeLayerSingle = [];
             markersSingle.forEach(m => mapSingle.removeLayer(m));
             markersSingle = [];
 
-            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            routeLayerSingle = L.polyline(coordsGeoJson, { color: '#34a853', weight: 5, opacity: 0.8 }).addTo(mapSingle);
-            mapSingle.fitBounds(routeLayerSingle.getBounds(), { padding: [50, 50] });
+            let bounds = [[oLat, oLon]];
 
-            let markerA = L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>Salida:</b> ${nomO}`);
-            let markerB = L.marker([dLat, dLon]).addTo(mapSingle).bindPopup(`<b>Destino:</b> ${nomD}`);
-            markersSingle.push(markerA, markerB);
+            // Marcador de Origen
+            let markerO = L.marker([oLat, oLon]).addTo(mapSingle)
+                .bindPopup(`<b>Origen:</b> ${nomO}`);
+            markersSingle.push(markerO);
 
-            let gmapsUrl = `https://www.google.com/maps/dir/${oLat},${oLon}/${dLat},${dLon}`;
-            let btn = document.createElement('a');
-            btn.className = 'btn-link';
-            btn.href = gmapsUrl;
-            btn.target = '_blank';
-            btn.innerText = "🗺️ Abrir Ruta Directa en Google Maps";
-            linksContainer.appendChild(btn);
+            // Marcadores y líneas para cada destino
+            validos.forEach((v, i) => {
+                let markerD = L.marker([v.lat, v.lon]).addTo(mapSingle)
+                    .bindPopup(`<b>Destino ${i+1}:</b> ${v.nombre}<br>Distancia: ${v.distKm.toFixed(2)} km`);
+                markersSingle.push(markerD);
+                bounds.push([v.lat, v.lon]);
+
+                let coordsGeoJson = v.geometry.coordinates.map(c => [c[1], c[0]]);
+                let polyline = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapSingle);
+                routeLayerSingle.push(polyline);
+            });
+
+            mapSingle.fitBounds(bounds, { padding: [50, 50] });
 
         } catch (error) {
             document.getElementById('s_loader').style.display = 'none';
-            mostrarError('s', "Error de conexión con el servicio de mapas.");
+            mostrarError('s', "Error de conexión al procesar las rutas.");
         }
     }
 
@@ -446,7 +508,6 @@
             return;
         }
 
-        // Construir la tabla de resultados
         const tablaBody = document.getElementById('k_tablaBody');
         tablaBody.innerHTML = '';
 
@@ -465,7 +526,6 @@
             `;
         });
 
-        // Construir Contenido del Archivo KML
         let kmlString = `<?xml version="1.0" encoding="UTF-8"?>\n`;
         kmlString += `<kml xmlns="http://www.opengis.net/kml/2.2">\n`;
         kmlString += `<Document>\n`;
@@ -484,14 +544,12 @@
         kmlString += `</Document>\n`;
         kmlString += `</kml>`;
 
-        // Crear Blob y activar descarga automática
         let blob = new Blob([kmlString], { type: 'application/vnd.google-earth.kml+xml' });
         let urlBlob = URL.createObjectURL(blob);
         
         let downloadBtn = document.getElementById('k_btnDescarga');
         downloadBtn.href = urlBlob;
 
-        // Disparar descarga automática en segundo plano
         let autoLink = document.createElement('a');
         autoLink.href = urlBlob;
         autoLink.download = 'puntos_personalizados.kml';
@@ -499,10 +557,8 @@
         autoLink.click();
         document.body.removeChild(autoLink);
 
-        // Mostrar sección de resultados KML y mapa
         document.getElementById('k_resultados').style.display = 'block';
 
-        // Inicializar mapa KML
         if (!mapKml) {
             mapKml = L.map('mapKml').setView([puntosKml[0].lat, puntosKml[0].lon], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapKml);
