@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Avanzado de Rutas, Procesos y Google Sheets</title>
+    <title>Gestor de Rutas y Google Sheets</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -11,10 +11,6 @@
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1100px; width: 100%; }
         
-        /* Banner de Usuario Activo */
-        .active-user-banner { background: #e8f0fe; border: 1px solid #d2e3fc; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-        .active-user-banner strong { color: #1967d2; }
-
         /* Pestañas */
         .tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
         .tab-btn { background: var(--bg); border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; }
@@ -59,113 +55,29 @@
         .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
         .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
         .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
-
-        /* Estilos específicos Módulo Control */
-        .user-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .process-card { background: #f8f9fa; border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .history-item { background: white; border: 1px solid var(--border); padding: 12px; border-radius: 6px; margin-top: 10px; }
+        .status-card { background: #e8f0fe; border: 1px solid #d2e3fc; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Banner de Usuario Activo Global -->
-    <div class="active-user-banner">
-        <div>👤 <strong>Usuario Activo:</strong> <span id="lblUsuarioActivo">Ninguno (Selecciona en Módulo de Control)</span></div>
-        <button class="secondary-btn" onclick="cambiarPestana('control')">Gestionar Procesos</button>
+    <!-- Estado de Sincronización con Google Sheets -->
+    <div class="status-card">
+        <div>
+            📊 <strong>Base de Datos Google Sheets:</strong> <span id="dbStatusMsg">Cargando estado...</span>
+        </div>
+        <button class="sheets-btn" onclick="sincronizarDesdeSheets(true)">🔄 Sincronizar Base de Datos</button>
     </div>
 
     <!-- Pestañas de Navegación -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarPestana('control')">🗂️ Módulo de Control</button>
-        <button class="tab-btn" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
+        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
         <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Origen a Destinos</button>
         <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ Mapa KML</button>
     </div>
 
-    <!-- MÓDULO 1: MÓDULO DE CONTROL -->
-    <div id="tab-control" class="tab-content active">
-        <h2>Módulo de Control y Sincronización con Google Sheets</h2>
-        
-        <!-- Configuración de Base de Datos DB -->
-        <div class="process-card" style="background: #e8f0fe; border-color: #d2e3fc;">
-            <h3>📊 Conexión con Google Sheets (Hoja "DB")</h3>
-            <p class="note">Ingresa la URL de tu aplicación web de Google Apps Script para sincronizar automáticamente los datos de la hoja DB, o utiliza el pegado manual como alternativa.</p>
-            
-            <div class="form-group" style="margin-top: 10px;">
-                <label>URL de Google Apps Script Web App:</label>
-                <input type="text" id="sheetsWebappUrl" placeholder="https://script.google.com/macros/s/.../exec">
-            </div>
-            
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="sheets-btn" onclick="sincronizarDesdeSheets()">🔄 Sincronizar desde Google Sheets</button>
-                <button class="secondary-btn" onclick="togglePasteManualDB()">📝 Alternar Pegado Manual</button>
-            </div>
-            
-            <div id="manualDbContainer" style="display: none; margin-top: 15px;">
-                <label>Pega aquí los datos tabulados de tu hoja DB:</label>
-                <textarea id="dbInputText" rows="3" placeholder="Columna A, D, H, I, Y, AH..."></textarea>
-                <button class="secondary-btn" style="margin-top: 8px;" onclick="guardarBaseDeDatosDBManual()">Guardar Pegado Manual</button>
-            </div>
-            
-            <div style="margin-top: 10px;">
-                <span id="dbStatusMsg" style="font-weight: bold; font-size: 13px; color: #137333;"></span>
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <button class="tab-btn active" id="subBtnCrear" onclick="cambiarSubControl('crear')">➕ Agregar Proceso y Usuarios</button>
-            <button class="tab-btn" id="subBtnBuscar" onclick="cambiarSubControl('buscar')">🔍 Búsqueda de Procesos y Consultas</button>
-        </div>
-
-        <!-- Sub-opción: Agregar Proceso -->
-        <div id="sub-crear" class="sub-control-content">
-            <div class="form-group">
-                <label>Nombre del Proceso:</label>
-                <input type="text" id="ctrlNombreProceso" placeholder="Ej. Ruta de Distribución Norte - Marzo">
-            </div>
-
-            <h3>Usuarios y Placas asignadas al Proceso</h3>
-            <div id="ctrlUsuariosContainer">
-                <div class="user-row">
-                    <input type="text" placeholder="Nombre del Usuario" class="u-nombre">
-                    <input type="text" placeholder="Placa Vehicular" class="u-placa">
-                    <button class="secondary-btn" onclick="eliminarFilaUsuario(this)" style="background: #d93025;">X</button>
-                </div>
-            </div>
-            <button class="secondary-btn" onclick="agregarFilaUsuario()" style="margin-bottom: 20px;">+ Agregar otro usuario</button>
-            
-            <button class="action-btn" onclick="guardarNuevoProceso()">Guardar Proceso Completo</button>
-            <div id="ctrlErrorMsg" class="error"></div>
-        </div>
-
-        <!-- Sub-opción: Búsqueda de Procesos -->
-        <div id="sub-buscar" class="sub-control-content" style="display: none;">
-            <div class="grid">
-                <div class="form-group">
-                    <label>Seleccionar Proceso:</label>
-                    <select id="ctrlSelectProceso" onchange="actualizarSelectUsuariosBusqueda()">
-                        <option value="">-- Selecciona un proceso --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Seleccionar Usuario:</label>
-                    <select id="ctrlSelectUsuario" onchange="cargarHistorialUsuarioSeleccionado()">
-                        <option value="">-- Selecciona un usuario --</option>
-                    </select>
-                </div>
-            </div>
-
-            <div id="ctrlInfoUsuarioDetalle" style="margin-top: 15px;"></div>
-            <h3>Historial de Búsquedas y Rutas Generadas</h3>
-            <div id="ctrlHistorialContainer">
-                <p class="note">Selecciona un proceso y un usuario para ver su información generada.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODO 2: RUTA MÚLTIPLE -->
-    <div id="tab-multi" class="tab-content">
+    <!-- MODO 1: RUTA MÚLTIPLE -->
+    <div id="tab-multi" class="tab-content active">
         <h2>Generador de Rutas Múltiples (Secuencial)</h2>
         
         <div class="source-selector">
@@ -194,7 +106,7 @@
         </div>
         <div id="m_dbSection" class="form-group" style="display: none;">
             <label>Nombres de los puntos a buscar (Columna A de la DB), uno por línea:</label>
-            <div class="note">El sistema buscará automáticamente las coordenadas y descripciones de la base de datos sincronizada.</div>
+            <div class="note">El sistema utilizará automáticamente la URL de Google Sheets para extraer las coordenadas y descripciones.</div>
             <textarea id="m_dbNames" rows="5" placeholder="Punto Central Norte&#10;Sucursal Poniente"></textarea>
         </div>
 
@@ -233,7 +145,7 @@
         </div>
     </div>
 
-    <!-- MODO 3: RUTA ORIGEN A MÚLTIPLES DESTINOS -->
+    <!-- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS -->
     <div id="tab-single" class="tab-content">
         <h2>Rutas Individuales desde un Origen Fijo a Varios Destinos</h2>
         
@@ -293,7 +205,7 @@
         </div>
     </div>
 
-    <!-- MODO 4: MAPA KML -->
+    <!-- MODO 3: MAPA KML -->
     <div id="tab-kml" class="tab-content">
         <h2>Generador y Visualizador de Puntos KML</h2>
         
@@ -312,7 +224,7 @@
         <div id="k_dbSection" class="form-group" style="display: none;">
             <label>Nombres de los puntos a buscar en la DB (Columna A), uno por línea:</label>
             <textarea id="k_dbNames" rows="5" placeholder="Escuela Central&#10;Biblioteca Sur"></textarea>
-            <div class="note">Las descripciones se extraerán de las columnas D, Y y AH de la DB sincronizada.</div>
+            <div class="note">Las descripciones se extraerán de las columnas D, Y y AH de la DB en Google Sheets.</div>
         </div>
 
         <button class="action-btn" onclick="procesarKML()">Generar KML y Ver en Mapa</button>
@@ -348,265 +260,54 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // URL FIJA DE GOOGLE APPS SCRIPT (Ya configurada previamente)
+    const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVMjkcEHNFb24kkQlJZWoISJA45EE8Ik_72GggqSyTM88EdxTPpeYGvyM8btiAt69_/exec"; // Reemplaza si necesitas actualizarla
+
     let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
     let markersKml = [];
     let currentLayers = { multi: null, single: null, kml: null };
 
-    // --- SISTEMA DE DATOS Y PERSISTENCIA (LOCALSTORAGE) ---
     let dbData = JSON.parse(localStorage.getItem('app_db_data')) || [];
-    let procesos = JSON.parse(localStorage.getItem('app_procesos')) || [];
-    let usuarioActivo = JSON.parse(localStorage.getItem('app_usuario_activo')) || null;
 
     document.addEventListener("DOMContentLoaded", () => {
-        const savedUrl = localStorage.getItem('app_sheets_url') || '';
-        if (savedUrl) {
-            document.getElementById('sheetsWebappUrl').value = savedUrl;
-        }
         if (dbData.length > 0) {
-            document.getElementById('dbStatusMsg').innerText = `DB cargada en memoria (${dbData.length} registros)`;
+            document.getElementById('dbStatusMsg').innerText = `Sincronizada (${dbData.length} registros en caché)`;
+        } else {
+            sincronizarDesdeSheets(false);
         }
-        actualizarSelectProcesos();
-        actualizarBannerUsuarioActivo();
     });
 
-    function togglePasteManualDB() {
-        const container = document.getElementById('manualDbContainer');
-        container.style.display = (container.style.display === 'none') ? 'block' : 'none';
-    }
-
     // --- SINCRONIZACIÓN AUTOMÁTICA CON GOOGLE SHEETS ---
-    async function sincronizarDesdeSheets() {
-        const urlWebapp = document.getElementById('sheetsWebappUrl').value.trim();
-        if (!urlWebapp) {
-            alert("https://script.google.com/macros/s/AKfycbzVMjkcEHNFb24kkQlJZWoISJA45EE8Ik_72GggqSyTM88EdxTPpeYGvyM8btiAt69_/exec");
-            return;
-        }
-
-        localStorage.setItem('app_sheets_url', urlWebapp);
+    async function sincronizarDesdeSheets(mostrarAlerta = false) {
         document.getElementById('dbStatusMsg').innerText = "Sincronizando con Google Sheets... ⏳";
 
         try {
-            let response = await fetch(urlWebapp);
+            let response = await fetch(SHEETS_WEBAPP_URL);
             let data = await response.json();
 
             if (data.error) {
-                alert(data.error);
+                if (mostrarAlerta) alert(data.error);
                 document.getElementById('dbStatusMsg').innerText = "Error reportado por Sheets.";
                 return;
             }
 
-            // Filtramos registros válidos que tengan nombre y coordenadas
             dbData = data.filter(item => item.nombre && !isNaN(item.lat) && !isNaN(item.lon));
-
             localStorage.setItem('app_db_data', JSON.stringify(dbData));
-            document.getElementById('dbStatusMsg').innerText = `¡DB sincronizada con éxito! (${dbData.length} registros cargados)`;
+            document.getElementById('dbStatusMsg').innerText = `Sincronizada con éxito (${dbData.length} registros)`;
             
+            if (mostrarAlerta) alert(`¡Base de datos sincronizada correctamente! (${dbData.length} registros cargados).`);
         } catch (error) {
             console.error("Error al conectar con Google Sheets:", error);
-            document.getElementById('dbStatusMsg').innerText = "Error de conexión con Google Sheets.";
-            alert("No se pudo establecer conexión. Verifica que la URL sea correcta y tenga permisos públicos.");
+            document.getElementById('dbStatusMsg').innerText = "Sin conexión (Usando caché local si existe)";
+            if (mostrarAlerta) alert("No se pudo conectar con Google Sheets. Verifica tu conexión o la URL.");
         }
-    }
-
-    function guardarBaseDeDatosDBManual() {
-        const rawText = document.getElementById('dbInputText').value.trim();
-        if (!rawText) {
-            alert("Por favor pega los datos de la hoja DB.");
-            return;
-        }
-        const lines = rawText.split('\n');
-        dbData = [];
-
-        lines.forEach(line => {
-            if (!line.trim()) return;
-            const cols = line.split('\t');
-            if (cols.length >= 2) {
-                const nombre = cols[0] ? cols[0].trim() : '';
-                const desc1 = cols[1] ? cols[1].trim() : '';
-                const lat = cols[3] ? parseFloat(cols[3].replace(',', '.')) : NaN;
-                const lon = cols[4] ? parseFloat(cols[4].replace(',', '.')) : NaN;
-                const desc2 = cols[20] ? cols[20].trim() : '';
-                const desc3 = cols[24] ? cols[24].trim() : '';
-
-                if (nombre && !isNaN(lat) && !isNaN(lon)) {
-                    dbData.push({ nombre, desc1, lat, lon, desc2, desc3 });
-                }
-            }
-        });
-
-        localStorage.setItem('app_db_data', JSON.stringify(dbData));
-        document.getElementById('dbStatusMsg').innerText = `DB manual guardada (${dbData.length} registros)`;
-        document.getElementById('manualDbContainer').style.display = 'none';
     }
 
     function buscarEnDB(nombrePunto) {
         let match = dbData.find(item => item.nombre.toLowerCase() === nombrePunto.toLowerCase());
         return match || null;
-    }
-
-    // --- GESTIÓN DE PROCESOS Y USUARIOS ---
-    function cambiarSubControl(sub) {
-        document.getElementById('subBtnCrear').classList.toggle('active', sub === 'crear');
-        document.getElementById('subBtnBuscar').classList.toggle('active', sub === 'buscar');
-        document.getElementById('sub-crear').style.display = (sub === 'crear') ? 'block' : 'none';
-        document.getElementById('sub-buscar').style.display = (sub === 'buscar') ? 'block' : 'none';
-        if (sub === 'buscar') actualizarSelectProcesos();
-    }
-
-    function agregarFilaUsuario() {
-        const container = document.getElementById('ctrlUsuariosContainer');
-        const row = document.createElement('div');
-        row.className = 'user-row';
-        row.innerHTML = `
-            <input type="text" placeholder="Nombre del Usuario" class="u-nombre">
-            <input type="text" placeholder="Placa Vehicular" class="u-placa">
-            <button class="secondary-btn" onclick="eliminarFilaUsuario(this)" style="background: #d93025;">X</button>
-        `;
-        container.appendChild(row);
-    }
-
-    function eliminarFilaUsuario(btn) {
-        if (document.querySelectorAll('.user-row').length > 1) {
-            btn.parentElement.remove();
-        } else {
-            alert("Debe haber al menos un usuario.");
-        }
-    }
-
-    function guardarNuevoProceso() {
-        const nombreProceso = document.getElementById('ctrlNombreProceso').value.trim();
-        if (!nombreProceso) {
-            document.getElementById('ctrlErrorMsg').innerText = "El nombre del proceso es obligatorio.";
-            document.getElementById('ctrlErrorMsg').style.display = 'block';
-            return;
-        }
-
-        const rows = document.querySelectorAll('.user-row');
-        let usuarios = [];
-        rows.forEach(r => {
-            const n = r.querySelector('.u-nombre').value.trim();
-            const p = r.querySelector('.u-placa').value.trim();
-            if (n) {
-                usuarios.push({ id: 'u_' + Math.random().toString(36).substring(2, 9), nombre: n, placa: p || 'S/P', historial: [] });
-            }
-        });
-
-        if (usuarios.length === 0) {
-            document.getElementById('ctrlErrorMsg').innerText = "Agrega al menos un usuario válido.";
-            document.getElementById('ctrlErrorMsg').style.display = 'block';
-            return;
-        }
-
-        const nuevoProceso = {
-            id: 'p_' + Math.random().toString(36).substring(2, 9),
-            nombre: nombreProceso,
-            fechaCreacion: new Date().toLocaleString(),
-            usuarios: usuarios
-        };
-
-        procesos.push(nuevoProceso);
-        localStorage.setItem('app_procesos', JSON.stringify(procesos));
-
-        usuarioActivo = { procesoId: nuevoProceso.id, procesoNombre: nuevoProceso.nombre, usuarioId: usuarios[0].id, usuarioNombre: usuarios[0].nombre, placa: usuarios[0].placa };
-        localStorage.setItem('app_usuario_activo', JSON.stringify(usuarioActivo));
-        actualizarBannerUsuarioActivo();
-
-        alert("Proceso y usuarios guardados exitosamente.");
-        document.getElementById('ctrlNombreProceso').value = '';
-        document.getElementById('ctrlErrorMsg').style.display = 'none';
-        cambiarSubControl('buscar');
-    }
-
-    function actualizarSelectProcesos() {
-        const sel = document.getElementById('ctrlSelectProceso');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">-- Selecciona un proceso --</option>';
-        procesos.forEach(p => {
-            sel.innerHTML += `<option value="${p.id}">${p.nombre} (${p.fechaCreacion})</option>`;
-        });
-    }
-
-    function actualizarSelectUsuariosBusqueda() {
-        const pId = document.getElementById('ctrlSelectProceso').value;
-        const selU = document.getElementById('ctrlSelectUsuario');
-        selU.innerHTML = '<option value="">-- Selecciona un usuario --</option>';
-        if (!pId) return;
-
-        let proc = procesos.find(p => p.id === pId);
-        if (proc) {
-            proc.usuarios.forEach(u => {
-                selU.innerHTML += `<option value="${u.id}">${u.nombre} (Placa: ${u.placa})</option>`;
-            });
-        }
-        document.getElementById('ctrlInfoUsuarioDetalle').innerHTML = '';
-        document.getElementById('ctrlHistorialContainer').innerHTML = '<p class="note">Selecciona un usuario para ver su historial.</p>';
-    }
-
-    function cargarHistorialUsuarioSeleccionado() {
-        const pId = document.getElementById('ctrlSelectProceso').value;
-        const uId = document.getElementById('ctrlSelectUsuario').value;
-        if (!pId || !uId) return;
-
-        let proc = procesos.find(p => p.id === pId);
-        let user = proc.usuarios.find(u => u.id === uId);
-
-        usuarioActivo = { procesoId: proc.id, procesoNombre: proc.nombre, usuarioId: user.id, usuarioNombre: user.nombre, placa: user.placa };
-        localStorage.setItem('app_usuario_activo', JSON.stringify(usuarioActivo));
-        actualizarBannerUsuarioActivo();
-
-        document.getElementById('ctrlInfoUsuarioDetalle').innerHTML = `
-            <div class="process-card" style="background: #e8f0fe;">
-                <strong>Proceso:</strong> ${proc.nombre} (Creado: ${proc.fechaCreacion})<br>
-                <strong>Usuario Seleccionado:</strong> ${user.nombre} | <strong>Placa:</strong> ${user.placa}
-            </div>
-        `;
-
-        const histContainer = document.getElementById('ctrlHistorialContainer');
-        histContainer.innerHTML = '';
-
-        if (!user.historial || user.historial.length === 0) {
-            histContainer.innerHTML = '<p class="note">Este usuario aún no tiene búsquedas o rutas guardadas.</p>';
-            return;
-        }
-
-        user.historial.forEach((h) => {
-            histContainer.innerHTML += `
-                <div class="history-item">
-                    <strong>[${h.fecha}] Tipo: ${h.tipoModulo}</strong><br>
-                    <span>Resumen: ${h.resumen}</span><br>
-                    <small style="color: #5f6368;">Detalles: ${h.detalles}</small>
-                </div>
-            `;
-        });
-    }
-
-    function actualizarBannerUsuarioActivo() {
-        const lbl = document.getElementById('lblUsuarioActivo');
-        if (usuarioActivo) {
-            lbl.innerHTML = `<span style="color: #137333;">${usuarioActivo.usuarioNombre} (Placa: ${usuarioActivo.placa})</span> [Proceso: ${usuarioActivo.procesoNombre}]`;
-        } else {
-            lbl.innerText = "Ninguno (Selecciona o crea uno en Módulo de Control)";
-        }
-    }
-
-    function guardarHistorialActivo(tipoModulo, resumen, detalles) {
-        if (!usuarioActivo) return;
-        let proc = procesos.find(p => p.id === usuarioActivo.procesoId);
-        if (!proc) return;
-        let user = proc.usuarios.find(u => u.id === usuarioActivo.usuarioId);
-        if (!user) return;
-
-        if (!user.historial) user.historial = [];
-        user.historial.unshift({
-            fecha: new Date().toLocaleString(),
-            tipoModulo,
-            resumen,
-            detalles
-        });
-
-        localStorage.setItem('app_procesos', JSON.stringify(procesos));
     }
 
     // --- SELECTOR DE FUENTE ---
@@ -661,28 +362,25 @@
     }
 
     function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => { if(!b.id.startsWith('subBtn')) b.classList.remove('active'); });
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
-        if(tipo === 'control') {
+        if(tipo === 'multi') {
             document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('tab-control').classList.add('active');
-        } else if(tipo === 'multi') {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
             document.getElementById('tab-multi').classList.add('active');
             if(mapMulti) mapMulti.invalidateSize();
         } else if(tipo === 'single') {
-            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
             document.getElementById('tab-single').classList.add('active');
             if(mapSingle) mapSingle.invalidateSize();
         } else if(tipo === 'kml') {
-            document.querySelectorAll('.tab-btn')[3].classList.add('active');
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
             document.getElementById('tab-kml').classList.add('active');
             if(mapKml) mapKml.invalidateSize();
         }
     }
 
-    // --- MODO 2: RUTA MÚLTIPLE ---
+    // --- MODO 1: RUTA MÚLTIPLE ---
     async function procesarRutaMultiple() {
         document.getElementById('m_errorMsg').style.display = 'none';
         document.getElementById('m_resultados').style.display = 'none';
@@ -765,11 +463,8 @@
                 tablaBody.innerHTML += `<tr><td>${i + 1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color: #1a73e8; font-weight: bold;">${distKm}</td><td style="color: #e37400; font-weight: bold;">${durMin}</td></tr>`;
             });
 
-            const resumenTexto = `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo: ${Math.round(tiempoTotalSeg / 60)} min`;
-            document.getElementById('m_totalDistancia').innerHTML = resumenTexto;
+            document.getElementById('m_totalDistancia').innerHTML = `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo: ${Math.round(tiempoTotalSeg / 60)} min`;
             document.getElementById('m_resultados').style.display = 'block';
-
-            guardarHistorialActivo('Ruta Múltiple', resumenTexto, `Paradas totales: ${puntos.length - 1}`);
 
             let mapa = inicializarMapaSiNoExiste('map', 'multi', oLat, oLon);
             if (routeLayerMulti) mapa.removeLayer(routeLayerMulti);
@@ -803,7 +498,7 @@
         }
     }
 
-    // --- MODO 3: ORIGEN A MÚLTIPLES DESTINOS ---
+    // --- MODO 2: ORIGEN A MÚLTIPLES DESTINOS ---
     async function procesarRutaMasivaPuntoAPunto() {
         document.getElementById('s_errorMsg').style.display = 'none';
         document.getElementById('s_resultados').style.display = 'none';
@@ -881,11 +576,8 @@
                 }
             });
 
-            const resumenTexto = `Suma Total: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalGlobal / 60)} min`;
-            document.getElementById('s_totalDistancia').innerHTML = resumenTexto;
+            document.getElementById('s_totalDistancia').innerHTML = `Suma Total: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalGlobal / 60)} min`;
             document.getElementById('s_resultados').style.display = 'block';
-
-            guardarHistorialActivo('Origen a Destinos', resumenTexto, `Destinos procesados: ${validos.length}`);
 
             let mapa = inicializarMapaSiNoExiste('mapSingle', 'single', oLat, oLon);
             if (routeLayerSingle.length > 0) routeLayerSingle.forEach(l => mapa.removeLayer(l));
@@ -908,7 +600,7 @@
         }
     }
 
-    // --- MODO 4: MAPA KML ---
+    // --- MODO 3: MAPA KML ---
     function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
         document.getElementById('k_resultados').style.display = 'none';
@@ -962,8 +654,6 @@
         puntosKml.forEach((p, idx) => {
             tablaBody.innerHTML += `<tr><td>${idx + 1}</td><td><strong>${p.nombre}</strong></td><td>${p.lat}</td><td>${p.lon}</td><td>${p.desc1}</td><td>${p.desc2}</td><td>${p.desc3}</td><td>${p.color}</td></tr>`;
         });
-
-        guardarHistorialActivo('Mapa KML', `Puntos KML generados: ${puntosKml.length}`, `Total de puntos procesados con éxito.`);
 
         let kmlString = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
         puntosKml.forEach(p => {
