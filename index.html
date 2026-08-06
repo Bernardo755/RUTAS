@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Rutas y Google Sheets</title>
+    <title>Gestor de Rutas y Google Sheets (Panel DB)</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -37,6 +37,10 @@
         button.sheets-btn { background-color: #34a853; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         button.sheets-btn:hover { background-color: #2d8c45; }
 
+        /* Panel de Control y Estado DB */
+        .control-panel { background: #fdf8f0; border: 1px solid #fce8e6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .control-panel h3 { margin-top: 0; color: #b06000; font-size: 15px; }
+
         /* Mapas y Controles de Capas */
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
         .layer-selector { display: flex; align-items: center; gap: 8px; }
@@ -55,7 +59,7 @@
         .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
         .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
         .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
-        .status-card { background: #e8f0fe; border: 1px solid #d2e3fc; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .status-card { background: #e8f0fe; border: 1px solid #d2e3fc; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     </style>
 </head>
 <body>
@@ -64,9 +68,25 @@
     <!-- Estado de Sincronización con Google Sheets -->
     <div class="status-card">
         <div>
-            📊 <strong>Base de Datos Google Sheets:</strong> <span id="dbStatusMsg">Cargando estado...</span>
+            📊 <strong>Base de Datos Google Sheets (DB):</strong> <span id="dbStatusMsg">Cargando estado...</span>
         </div>
         <button class="sheets-btn" onclick="sincronizarDesdeSheets(true)">🔄 Sincronizar Base de Datos</button>
+    </div>
+
+    <!-- PANEL DE CONTROL / GESTOR DE BÚSQUEDA EN DB -->
+    <div class="control-panel">
+        <h3>🔍 Panel de Control y Consulta Rápida en Base de Datos</h3>
+        <div class="grid" style="margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="buscadorRapido">Buscar Proceso / Punto en DB (Columna A):</label>
+                <input type="text" id="buscadorRapido" placeholder="Escribe el nombre exacto o parcial..." oninput="filtrarVistaPreviaDB()">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="resultadoBusquedaInfo">Coordenadas y Detalles Extraen (Col. D, E, B, U, Y):</label>
+                <input type="text" id="resultadoBusquedaInfo" readonly placeholder="Selecciona o escribe un nombre arriba..." style="background: #f1f3f4;">
+            </div>
+        </div>
+        <div class="note">Mapeo de Columnas: Columna A (Nombre), Columna B (Desc 1), Columna D (Latitud), Columna E (Longitud), Columna U (Desc 2), Columna Y (Desc 3).</div>
     </div>
 
     <!-- Pestañas de Navegación -->
@@ -84,7 +104,7 @@
             <label>Origen de la Información de Paradas:</label>
             <div class="radio-group">
                 <label><input type="radio" name="m_sourceType" value="paste" checked onclick="toggleSourceType('m', 'paste')"> Pegar datos manuales</label>
-                <label><input type="radio" name="m_sourceType" value="db" onclick="toggleSourceType('m', 'db')"> Extraer de la Base de Datos (DB)</label>
+                <label><input type="radio" name="m_sourceType" value="db" onclick="toggleSourceType('m', 'db')"> Extraer de la Base de Datos (DB - Col. A)</label>
             </div>
         </div>
 
@@ -105,8 +125,8 @@
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
         <div id="m_dbSection" class="form-group" style="display: none;">
-            <label>Nombres de los puntos a buscar (Columna A de la DB), uno por línea:</label>
-            <div class="note">El sistema utilizará automáticamente la URL de Google Sheets para extraer las coordenadas y descripciones.</div>
+            <label>Nombres de los puntos a buscar en la DB (Columna A), uno por línea:</label>
+            <div class="note">El sistema buscará el nombre en la Columna A y extraerá automáticamente Lat (Col D) y Lon (Col E).</div>
             <textarea id="m_dbNames" rows="5" placeholder="Punto Central Norte&#10;Sucursal Poniente"></textarea>
         </div>
 
@@ -132,10 +152,10 @@
                 </div>
             </div>
             <div id="map"></div>
-            <h3>Detalle de Puntos y Distancias</h3>
+            <h3>Detalle de Puntos, Coordenadas y Distancias</h3>
             <table>
                 <thead>
-                    <tr><th>#</th><th>Nombre / Punto</th><th>Latitud</th><th>Longitud</th><th>Distancia tramo</th><th>Tiempo</th></tr>
+                    <tr><th>#</th><th>Nombre / Punto</th><th>Latitud (Col D)</th><th>Longitud (Col E)</th><th>Distancia tramo</th><th>Tiempo</th></tr>
                 </thead>
                 <tbody id="m_tablaBody"></tbody>
             </table>
@@ -153,7 +173,7 @@
             <label>Origen de la Información de Destinos:</label>
             <div class="radio-group">
                 <label><input type="radio" name="s_sourceType" value="paste" checked onclick="toggleSourceType('s', 'paste')"> Pegar datos manuales</label>
-                <label><input type="radio" name="s_sourceType" value="db" onclick="toggleSourceType('s', 'db')"> Extraer de la Base de Datos (DB)</label>
+                <label><input type="radio" name="s_sourceType" value="db" onclick="toggleSourceType('s', 'db')"> Extraer de la Base de Datos (DB - Col. A)</label>
             </div>
         </div>
 
@@ -194,10 +214,10 @@
                 </div>
             </div>
             <div id="mapSingle"></div>
-            <h3>Detalle de Distancias por Destino</h3>
+            <h3>Detalle de Destinos, Coordenadas y Distancias</h3>
             <table>
                 <thead>
-                    <tr><th>#</th><th>Destino</th><th>Latitud</th><th>Longitud</th><th>Distancia Real</th><th>Tiempo Estimado</th><th>Google Maps</th></tr>
+                    <tr><th>#</th><th>Destino</th><th>Latitud (Col D)</th><th>Longitud (Col E)</th><th>Distancia Real</th><th>Tiempo Estimado</th><th>Google Maps</th></tr>
                 </thead>
                 <tbody id="s_tablaBody"></tbody>
             </table>
@@ -213,7 +233,7 @@
             <label>Origen de la Información de Puntos:</label>
             <div class="radio-group">
                 <label><input type="radio" name="k_sourceType" value="paste" checked onclick="toggleSourceType('k', 'paste')"> Pegar datos manuales</label>
-                <label><input type="radio" name="k_sourceType" value="db" onclick="toggleSourceType('k', 'db')"> Extraer de la Base de Datos (DB)</label>
+                <label><input type="radio" name="k_sourceType" value="db" onclick="toggleSourceType('k', 'db')"> Extraer de la Base de Datos (DB - Col. A)</label>
             </div>
         </div>
 
@@ -224,7 +244,7 @@
         <div id="k_dbSection" class="form-group" style="display: none;">
             <label>Nombres de los puntos a buscar en la DB (Columna A), uno por línea:</label>
             <textarea id="k_dbNames" rows="5" placeholder="Escuela Central&#10;Biblioteca Sur"></textarea>
-            <div class="note">Las descripciones se extraerán de las columnas D, Y y AH de la DB en Google Sheets.</div>
+            <div class="note">Las descripciones se extraerán de las columnas B (Desc 1), U (Desc 2) y Y (Desc 3) de la DB. Coordenadas de Col D y E.</div>
         </div>
 
         <button class="action-btn" onclick="procesarKML()">Generar KML y Ver en Mapa</button>
@@ -243,10 +263,10 @@
                 </div>
             </div>
             <div id="mapKml"></div>
-            <h3>Detalle de Puntos Procesados</h3>
+            <h3>Detalle de Puntos y Coordenadas Procesadas</h3>
             <table>
                 <thead>
-                    <tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Descripción 1</th><th>Descripción 2</th><th>Descripción 3</th><th>Color</th></tr>
+                    <tr><th>#</th><th>Nombre (Col A)</th><th>Latitud (Col D)</th><th>Longitud (Col E)</th><th>Desc 1 (Col B)</th><th>Desc 2 (Col U)</th><th>Desc 3 (Col Y)</th><th>Color</th></tr>
                 </thead>
                 <tbody id="k_tablaBody"></tbody>
             </table>
@@ -260,8 +280,8 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // URL FIJA DE GOOGLE APPS SCRIPT (Ya configurada previamente)
-    const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVMjkcEHNFb24kkQlJZWoISJA45EE8Ik_72GggqSyTM88EdxTPpeYGvyM8btiAt69_/exec"; // Reemplaza si necesitas actualizarla
+    // URL FIJA DE GOOGLE APPS SCRIPT PRECONFIGURADA
+    const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVMjkcEHNFb24kkQlJZWoISJA45EE8Ik_72GggqSyTM88EdxTPpeYGvyM8btiAt69_/exec";
 
     let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
@@ -279,7 +299,7 @@
         }
     });
 
-    // --- SINCRONIZACIÓN AUTOMÁTICA CON GOOGLE SHEETS ---
+    // --- SINCRONIZACIÓN CON GOOGLE SHEETS ---
     async function sincronizarDesdeSheets(mostrarAlerta = false) {
         document.getElementById('dbStatusMsg').innerText = "Sincronizando con Google Sheets... ⏳";
 
@@ -293,7 +313,22 @@
                 return;
             }
 
-            dbData = data.filter(item => item.nombre && !isNaN(item.lat) && !isNaN(item.lon));
+            // Mapeo estructurado acorde a tus indicaciones:
+            // Columna A = nombre
+            // Columna B = desc1
+            // Columna D = lat
+            // Columna E = lon
+            // Columna U = desc2
+            // Columna Y = desc3
+            dbData = data.map(item => ({
+                nombre: item.nombre || item.A || "",
+                desc1: item.desc1 || item.B || "",
+                lat: parseFloat(item.lat || item.D),
+                lon: parseFloat(item.lon || item.E),
+                desc2: item.desc2 || item.U || "",
+                desc3: item.desc3 || item.Y || ""
+            })).filter(item => item.nombre && !isNaN(item.lat) && !isNaN(item.lon));
+
             localStorage.setItem('app_db_data', JSON.stringify(dbData));
             document.getElementById('dbStatusMsg').innerText = `Sincronizada con éxito (${dbData.length} registros)`;
             
@@ -306,8 +341,26 @@
     }
 
     function buscarEnDB(nombrePunto) {
-        let match = dbData.find(item => item.nombre.toLowerCase() === nombrePunto.toLowerCase());
+        let match = dbData.find(item => item.nombre.toLowerCase().trim() === nombrePunto.toLowerCase().trim());
         return match || null;
+    }
+
+    // --- PANEL DE CONTROL: BÚSQUEDA RÁPIDA ---
+    function filtrarVistaPreviaDB() {
+        let query = document.getElementById('buscadorRapido').value.trim();
+        let infoInput = document.getElementById('resultadoBusquedaInfo');
+        if (!query) {
+            infoInput.value = "";
+            return;
+        }
+        let match = buscarEnDB(query);
+        if (match) {
+            infoInput.value = `Lat: ${match.lat} | Lon: ${match.lon} | B: ${match.desc1} | U: ${match.desc2} | Y: ${match.desc3}`;
+            infoInput.style.color = "#137333";
+        } else {
+            infoInput.value = "No encontrado en la Base de Datos (Columna A)";
+            infoInput.style.color = "#d93025";
+        }
     }
 
     // --- SELECTOR DE FUENTE ---
@@ -476,7 +529,7 @@
             mapa.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
             puntos.forEach((p, index) => {
-                let marker = L.marker([p.lat, p.lon]).addTo(mapa).bindPopup(`<b>${index}. ${p.nombre}</b>`);
+                let marker = L.marker([p.lat, p.lon]).addTo(mapa).bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
                 markersMulti.push(marker);
             });
 
@@ -586,10 +639,10 @@
             markersSingle = [];
 
             let bounds = [[oLat, oLon]];
-            markersSingle.push(L.marker([oLat, oLon]).addTo(mapa).bindPopup(`<b>Origen:</b> ${nomO}`));
+            markersSingle.push(L.marker([oLat, oLon]).addTo(mapa).bindPopup(`<b>Origen:</b> ${nomO}<br>Lat: ${oLat}, Lon: ${oLon}`));
 
             validos.forEach((v) => {
-                markersSingle.push(L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>${v.nombre}</b>`));
+                markersSingle.push(L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>${v.nombre}</b><br>Lat: ${v.lat}, Lon: ${v.lon}`));
                 bounds.push([v.lat, v.lon]);
                 routeLayerSingle.push(L.polyline(v.geometry.coordinates.map(c => [c[1], c[0]]), { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapa));
             });
@@ -657,7 +710,7 @@
 
         let kmlString = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
         puntosKml.forEach(p => {
-            kmlString += `  <Placemark>\n    <name><![CDATA[${p.nombre}]]></name>\n    <description><![CDATA[<b>Desc 1:</b> ${p.desc1}<br><b>Desc 2:</b> ${p.desc2}<br><b>Desc 3:</b> ${p.desc3}]]></description>\n    <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>\n  </Placemark>\n`;
+            kmlString += `  <Placemark>\n    <name><![CDATA[${p.nombre}]]></name>\n    <description><![CDATA[<b>Desc 1 (Col B):</b> ${p.desc1}<br><b>Desc 2 (Col U):</b> ${p.desc2}<br><b>Desc 3 (Col Y):</b> ${p.desc3}<br><b>Coordenadas:</b> ${p.lat}, ${p.lon}]]></description>\n    <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>\n  </Placemark>\n`;
         });
         kmlString += `</Document>\n</kml>`;
 
@@ -671,7 +724,7 @@
 
         let bounds = [];
         puntosKml.forEach(p => {
-            let marker = L.circleMarker([p.lat, p.lon], { radius: 8, fillColor: p.color, color: '#fff', weight: 1.5, fillOpacity: 0.9 }).addTo(mapa).bindPopup(`<b>${p.nombre}</b>`);
+            let marker = L.circleMarker([p.lat, p.lon], { radius: 8, fillColor: p.color, color: '#fff', weight: 1.5, fillOpacity: 0.9 }).addTo(mapa).bindPopup(`<b>${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
             markersKml.push(marker);
             bounds.push([p.lat, p.lon]);
         });
