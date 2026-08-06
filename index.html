@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Rutas y Google Sheets (Panel DB)</title>
+    <title>Gestor de Procesos, Rutas y Google Sheets</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; }
+        :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; --disabled: #9aa0a6; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1100px; width: 100%; }
         
@@ -15,6 +15,7 @@
         .tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
         .tab-btn { background: var(--bg); border: none; padding: 10px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; }
         .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn.locked { background: #e8eaed; color: var(--disabled); cursor: not-allowed; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
@@ -32,14 +33,14 @@
         .checkbox-group { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #1967d2; }
         button.action-btn { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
         button.action-btn:hover { background-color: var(--hover); }
-        button.secondary-btn { background-color: #5f6368; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+        button.secondary-btn { background-color: #5f6368; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         button.secondary-btn:hover { background-color: #3c4043; }
         button.sheets-btn { background-color: #34a853; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         button.sheets-btn:hover { background-color: #2d8c45; }
 
-        /* Panel de Control y Estado DB */
-        .control-panel { background: #fdf8f0; border: 1px solid #fce8e6; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .control-panel h3 { margin-top: 0; color: #b06000; font-size: 15px; }
+        /* Panel de Control Estilos */
+        .control-container { background: #fdf8f0; border: 1px solid #fce8e6; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .process-status-banner { background: #e6f4ea; border: 1px solid #ceead6; padding: 12px 15px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #137333; display: flex; justify-content: space-between; align-items: center; }
 
         /* Mapas y Controles de Capas */
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
@@ -73,31 +74,62 @@
         <button class="sheets-btn" onclick="sincronizarDesdeSheets(true)">🔄 Sincronizar Base de Datos</button>
     </div>
 
-    <!-- PANEL DE CONTROL / GESTOR DE BÚSQUEDA EN DB -->
-    <div class="control-panel">
-        <h3>🔍 Panel de Control y Consulta Rápida en Base de Datos</h3>
-        <div class="grid" style="margin-bottom: 10px;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="buscadorRapido">Buscar Proceso / Punto en DB (Columna A):</label>
-                <input type="text" id="buscadorRapido" placeholder="Escribe el nombre exacto o parcial..." oninput="filtrarVistaPreviaDB()">
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label for="resultadoBusquedaInfo">Coordenadas y Detalles Extraen (Col. D, E, B, U, Y):</label>
-                <input type="text" id="resultadoBusquedaInfo" readonly placeholder="Selecciona o escribe un nombre arriba..." style="background: #f1f3f4;">
-            </div>
-        </div>
-        <div class="note">Mapeo de Columnas: Columna A (Nombre), Columna B (Desc 1), Columna D (Latitud), Columna E (Longitud), Columna U (Desc 2), Columna Y (Desc 3).</div>
-    </div>
-
     <!-- Pestañas de Navegación -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
-        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Origen a Destinos</button>
-        <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ Mapa KML</button>
+        <button class="tab-btn active" onclick="cambiarPestana('control')">⚙️ Panel de Control</button>
+        <button class="tab-btn locked" id="btn-tab-multi" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
+        <button class="tab-btn locked" id="btn-tab-single" onclick="cambiarPestana('single')">➡️ Origen a Destinos</button>
+        <button class="tab-btn locked" id="btn-tab-kml" onclick="cambiarPestana('kml')">🗺️ Mapa KML</button>
+    </div>
+
+    <!-- PESTAÑA 0: PANEL DE CONTROL -->
+    <div id="tab-control" class="tab-content active">
+        <h2>Panel de Control - Gestión de Procesos</h2>
+        
+        <div id="activeProcessBanner" class="process-status-banner" style="display: none;">
+            <div>⚡ Proceso Activo: <span id="lblActiveProcessName" style="color: #0b5129;">Ninguno</span> | Usuarios/Etiquetas: <span id="lblActiveUsers">Ninguno</span></div>
+            <button class="secondary-btn" onclick="cerrarProcesoActual()" style="background: #d93025; padding: 6px 12px; font-size: 12px;">Cerrar / Cambiar Proceso</button>
+        </div>
+
+        <div id="processManagementArea">
+            <div class="grid">
+                <!-- Crear Proceso -->
+                <div class="control-container">
+                    <h3>➕ Crear un Proceso Nuevo</h3>
+                    <div class="form-group">
+                        <label for="nuevoProcesoNombre">Nombre del Proceso:</label>
+                        <input type="text" id="nuevoProcesoNombre" placeholder="Ej. Ruta Logística Centro 2026">
+                    </div>
+                    <div class="form-group">
+                        <label for="nuevoProcesoUsuarios">Usuarios / Etiquetas (Separados por comas o líneas):</label>
+                        <textarea id="nuevoProcesoUsuarios" rows="4" placeholder="Ej. Juan Pérez, Operador 1, Supervisor Zonal"></textarea>
+                        <div class="note">Aquí se guardará la información consultada para este proceso.</div>
+                    </div>
+                    <button class="action-btn" onclick="crearNuevoProceso()">Crear Proceso y Activar Pestañas</button>
+                </div>
+
+                <!-- Consultar Proceso Existente -->
+                <div class="control-container">
+                    <h3>📂 Consultar Proceso Ya Creado</h3>
+                    <div class="form-group">
+                        <label for="selectProcesoExistente">Selecciona un Proceso:</label>
+                        <select id="selectProcesoExistente" style="margin-bottom: 15px;">
+                            <option value="">-- Selecciona un proceso guardado --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Detalle de Etiquetas Registradas:</label>
+                        <input type="text" id="infoProcesoExistente" readonly placeholder="Selecciona un proceso arriba..." style="background: #f1f3f4;">
+                    </div>
+                    <button class="action-btn" style="background-color: #34a853; margin-top: 25px;" onclick="cargarProcesoExistente()">Cargar Proceso y Activar Pestañas</button>
+                </div>
+            </div>
+            <div id="controlErrorMsg" class="error"></div>
+        </div>
     </div>
 
     <!-- MODO 1: RUTA MÚLTIPLE -->
-    <div id="tab-multi" class="tab-content active">
+    <div id="tab-multi" class="tab-content">
         <h2>Generador de Rutas Múltiples (Secuencial)</h2>
         
         <div class="source-selector">
@@ -125,9 +157,10 @@
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
         <div id="m_dbSection" class="form-group" style="display: none;">
-            <label>Nombres de los puntos a buscar en la DB (Columna A), uno por línea:</label>
-            <div class="note">El sistema buscará el nombre en la Columna A y extraerá automáticamente Lat (Col D) y Lon (Col E).</div>
+            <label>Nombres a buscar en la DB (Columna A), uno por línea:</label>
+            <div class="note">Al procesar, el sistema buscará el nombre en Columna A, extraerá las coordenadas de la Columna D (Lat) y E (Lon) y generará la ruta.</div>
             <textarea id="m_dbNames" rows="5" placeholder="Punto Central Norte&#10;Sucursal Poniente"></textarea>
+            <button class="secondary-btn" style="margin-top: 10px;" onclick="previsualizarExtraccionDB('m')">🔍 Buscar y Extraer Coordenadas de DB</button>
         </div>
 
         <div class="checkbox-group">
@@ -195,6 +228,7 @@
         <div id="s_dbSection" class="form-group" style="display: none;">
             <label>Nombres de los destinos a buscar en la DB (Columna A), uno por línea:</label>
             <textarea id="s_dbNames" rows="5" placeholder="Sucursal Norte&#10;Sucursal Sur"></textarea>
+            <button class="secondary-btn" style="margin-top: 10px;" onclick="previsualizarExtraccionDB('s')">🔍 Buscar y Extraer Coordenadas de DB</button>
         </div>
 
         <button class="action-btn" onclick="procesarRutaMasivaPuntoAPunto()">Calcular Distancias y Tramos Individuales</button>
@@ -245,6 +279,7 @@
             <label>Nombres de los puntos a buscar en la DB (Columna A), uno por línea:</label>
             <textarea id="k_dbNames" rows="5" placeholder="Escuela Central&#10;Biblioteca Sur"></textarea>
             <div class="note">Las descripciones se extraerán de las columnas B (Desc 1), U (Desc 2) y Y (Desc 3) de la DB. Coordenadas de Col D y E.</div>
+            <button class="secondary-btn" style="margin-top: 10px;" onclick="previsualizarExtraccionDB('k')">🔍 Buscar y Extraer Coordenadas de DB</button>
         </div>
 
         <button class="action-btn" onclick="procesarKML()">Generar KML y Ver en Mapa</button>
@@ -290,6 +325,8 @@
     let currentLayers = { multi: null, single: null, kml: null };
 
     let dbData = JSON.parse(localStorage.getItem('app_db_data')) || [];
+    let savedProcesses = JSON.parse(localStorage.getItem('app_saved_processes')) || [];
+    let currentProcess = JSON.parse(localStorage.getItem('app_current_process')) || null;
 
     document.addEventListener("DOMContentLoaded", () => {
         if (dbData.length > 0) {
@@ -297,7 +334,103 @@
         } else {
             sincronizarDesdeSheets(false);
         }
+        actualizarSelectProcesos();
+        verificarEstadoProceso();
     });
+
+    // --- GESTIÓN DE PROCESOS (PANEL DE CONTROL) ---
+    function actualizarSelectProcesos() {
+        let select = document.getElementById('selectProcesoExistente');
+        select.innerHTML = '<option value="">-- Selecciona un proceso guardado --</option>';
+        savedProcesses.forEach((p, idx) => {
+            select.innerHTML += `<option value="${idx}">${p.nombre}</option>`;
+        });
+
+        select.onchange = function() {
+            let idx = this.value;
+            let infoInput = document.getElementById('infoProcesoExistente');
+            if (idx === "") {
+                infoInput.value = "";
+            } else {
+                let proc = savedProcesses[idx];
+                infoInput.value = `Usuarios / Etiquetas: ${proc.usuarios}`;
+            }
+        };
+    }
+
+    function crearNuevoProceso() {
+        let nombre = document.getElementById('nuevoProcesoNombre').value.trim();
+        let usuarios = document.getElementById('nuevoProcesoUsuarios').value.trim();
+        let errorDiv = document.getElementById('controlErrorMsg');
+
+        if (!nombre) {
+            errorDiv.innerText = "Debes ingresar un nombre para el proceso.";
+            errorDiv.style.display = 'block';
+            return;
+        }
+        errorDiv.style.display = 'none';
+
+        currentProcess = { nombre, usuarios: usuarios || "General", creado: new Date().toLocaleString() };
+        savedProcesses.push(currentProcess);
+        localStorage.setItem('app_saved_processes', JSON.stringify(savedProcesses));
+        localStorage.setItem('app_current_process', JSON.stringify(currentProcess));
+
+        actualizarSelectProcesos();
+        verificarEstadoProceso();
+        alert(`¡Proceso "${nombre}" creado exitosamente! Se han desbloqueado las pestañas de rutas.`);
+        cambiarPestana('multi');
+    }
+
+    function cargarProcesoExistente() {
+        let select = document.getElementById('selectProcesoExistente');
+        let idx = select.value;
+        let errorDiv = document.getElementById('controlErrorMsg');
+
+        if (idx === "") {
+            errorDiv.innerText = "Selecciona un proceso existente de la lista.";
+            errorDiv.style.display = 'block';
+            return;
+        }
+        errorDiv.style.display = 'none';
+
+        currentProcess = savedProcesses[idx];
+        localStorage.setItem('app_current_process', JSON.stringify(currentProcess));
+
+        verificarEstadoProceso();
+        alert(`¡Proceso "${currentProcess.nombre}" cargado correctamente!`);
+        cambiarPestana('multi');
+    }
+
+    function cerrarProcesoActual() {
+        if (confirm("¿Estás seguro de cerrar el proceso actual? Las pestañas de rutas se bloquearán de nuevo.")) {
+            currentProcess = null;
+            localStorage.removeItem('app_current_process');
+            verificarEstadoProceso();
+            cambiarPestana('control');
+        }
+    }
+
+    function verificarEstadoProceso() {
+        let banner = document.getElementById('activeProcessBanner');
+        let btnMulti = document.getElementById('btn-tab-multi');
+        let btnSingle = document.getElementById('btn-tab-single');
+        let btnKml = document.getElementById('btn-tab-kml');
+
+        if (currentProcess) {
+            banner.style.display = 'flex';
+            document.getElementById('lblActiveProcessName').innerText = currentProcess.nombre;
+            document.getElementById('lblActiveUsers').innerText = currentProcess.usuarios;
+
+            btnMulti.classList.remove('locked');
+            btnSingle.classList.remove('locked');
+            btnKml.classList.remove('locked');
+        } else {
+            banner.style.display = 'none';
+            btnMulti.classList.add('locked');
+            btnSingle.classList.add('locked');
+            btnKml.classList.add('locked');
+        }
+    }
 
     // --- SINCRONIZACIÓN CON GOOGLE SHEETS ---
     async function sincronizarDesdeSheets(mostrarAlerta = false) {
@@ -313,13 +446,6 @@
                 return;
             }
 
-            // Mapeo estructurado acorde a tus indicaciones:
-            // Columna A = nombre
-            // Columna B = desc1
-            // Columna D = lat
-            // Columna E = lon
-            // Columna U = desc2
-            // Columna Y = desc3
             dbData = data.map(item => ({
                 nombre: item.nombre || item.A || "",
                 desc1: item.desc1 || item.B || "",
@@ -345,21 +471,29 @@
         return match || null;
     }
 
-    // --- PANEL DE CONTROL: BÚSQUEDA RÁPIDA ---
-    function filtrarVistaPreviaDB() {
-        let query = document.getElementById('buscadorRapido').value.trim();
-        let infoInput = document.getElementById('resultadoBusquedaInfo');
-        if (!query) {
-            infoInput.value = "";
-            return;
-        }
-        let match = buscarEnDB(query);
-        if (match) {
-            infoInput.value = `Lat: ${match.lat} | Lon: ${match.lon} | B: ${match.desc1} | U: ${match.desc2} | Y: ${match.desc3}`;
-            infoInput.style.color = "#137333";
+    // --- PREVISUALIZACIÓN / EXTRACCIÓN DE DB ANTES DE GENERAR ---
+    function previsualizarExtraccionDB(modulo) {
+        let textareaNames = document.getElementById(modulo + '_dbNames');
+        let nombres = textareaNames.value.trim().split('\n');
+        let encontrados = 0;
+        let noEncontrados = [];
+
+        nombres.forEach(nombreBuscado => {
+            if (!nombreBuscado.trim()) return;
+            let match = buscarEnDB(nombreBuscado.trim());
+            if (match) {
+                encontrados++;
+            } else {
+                noEncontrados.push(nombreBuscado.trim());
+            }
+        });
+
+        if (noEncontrados.length > 0) {
+            alert(`Resultados de búsqueda en DB:\n- Encontrados: ${encontrados}\n- No encontrados en Columna A: ${noEncontrados.join(', ')}`);
+        } else if (encontrados > 0) {
+            alert(`¡Excelente! Se encontraron y extrajeron correctamente las coordenadas (Col D, E) de los ${encontrados} puntos ingresados.`);
         } else {
-            infoInput.value = "No encontrado en la Base de Datos (Columna A)";
-            infoInput.style.color = "#d93025";
+            alert("Ingresa al menos un nombre para buscar en la base de datos.");
         }
     }
 
@@ -415,19 +549,27 @@
     }
 
     function cambiarPestana(tipo) {
+        if (tipo !== 'control' && !currentProcess) {
+            alert("Primero debes crear o seleccionar un proceso en el Panel de Control.");
+            return;
+        }
+
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
-        if(tipo === 'multi') {
+        if(tipo === 'control') {
             document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-control').classList.add('active');
+        } else if(tipo === 'multi') {
+            document.getElementById('btn-tab-multi').classList.add('active');
             document.getElementById('tab-multi').classList.add('active');
             if(mapMulti) mapMulti.invalidateSize();
         } else if(tipo === 'single') {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('btn-tab-single').classList.add('active');
             document.getElementById('tab-single').classList.add('active');
             if(mapSingle) mapSingle.invalidateSize();
         } else if(tipo === 'kml') {
-            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.getElementById('btn-tab-kml').classList.add('active');
             document.getElementById('tab-kml').classList.add('active');
             if(mapKml) mapKml.invalidateSize();
         }
@@ -516,7 +658,7 @@
                 tablaBody.innerHTML += `<tr><td>${i + 1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color: #1a73e8; font-weight: bold;">${distKm}</td><td style="color: #e37400; font-weight: bold;">${durMin}</td></tr>`;
             });
 
-            document.getElementById('m_totalDistancia').innerHTML = `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo: ${Math.round(tiempoTotalSeg / 60)} min`;
+            document.getElementById('m_totalDistancia').innerHTML = `Proceso: <b>${currentProcess.nombre}</b> | Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo: ${Math.round(tiempoTotalSeg / 60)} min`;
             document.getElementById('m_resultados').style.display = 'block';
 
             let mapa = inicializarMapaSiNoExiste('map', 'multi', oLat, oLon);
@@ -529,7 +671,7 @@
             mapa.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
             puntos.forEach((p, index) => {
-                let marker = L.marker([p.lat, p.lon]).addTo(mapa).bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
+                let marker = L.marker([p.lat, p.lon]).addTo(mapa).bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat (Col D): ${p.lat}, Lon (Col E): ${p.lon}`);
                 markersMulti.push(marker);
             });
 
@@ -629,7 +771,7 @@
                 }
             });
 
-            document.getElementById('s_totalDistancia').innerHTML = `Suma Total: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalGlobal / 60)} min`;
+            document.getElementById('s_totalDistancia').innerHTML = `Proceso: <b>${currentProcess.nombre}</b> | Suma Total: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalGlobal / 60)} min`;
             document.getElementById('s_resultados').style.display = 'block';
 
             let mapa = inicializarMapaSiNoExiste('mapSingle', 'single', oLat, oLon);
@@ -642,7 +784,7 @@
             markersSingle.push(L.marker([oLat, oLon]).addTo(mapa).bindPopup(`<b>Origen:</b> ${nomO}<br>Lat: ${oLat}, Lon: ${oLon}`));
 
             validos.forEach((v) => {
-                markersSingle.push(L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>${v.nombre}</b><br>Lat: ${v.lat}, Lon: ${v.lon}`));
+                markersSingle.push(L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>${v.nombre}</b><br>Lat (Col D): ${v.lat}, Lon (Col E): ${v.lon}`));
                 bounds.push([v.lat, v.lon]);
                 routeLayerSingle.push(L.polyline(v.geometry.coordinates.map(c => [c[1], c[0]]), { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapa));
             });
@@ -710,7 +852,7 @@
 
         let kmlString = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
         puntosKml.forEach(p => {
-            kmlString += `  <Placemark>\n    <name><![CDATA[${p.nombre}]]></name>\n    <description><![CDATA[<b>Desc 1 (Col B):</b> ${p.desc1}<br><b>Desc 2 (Col U):</b> ${p.desc2}<br><b>Desc 3 (Col Y):</b> ${p.desc3}<br><b>Coordenadas:</b> ${p.lat}, ${p.lon}]]></description>\n    <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>\n  </Placemark>\n`;
+            kmlString += `  <Placemark>\n    <name><![CDATA[${p.nombre}]]></name>\n    <description><![CDATA[<b>Proceso:</b> ${currentProcess.nombre}<br><b>Desc 1 (Col B):</b> ${p.desc1}<br><b>Desc 2 (Col U):</b> ${p.desc2}<br><b>Desc 3 (Col Y):</b> ${p.desc3}<br><b>Coordenadas (Col D, E):</b> ${p.lat}, ${p.lon}]]></description>\n    <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>\n  </Placemark>\n`;
         });
         kmlString += `</Document>\n</kml>`;
 
@@ -724,7 +866,7 @@
 
         let bounds = [];
         puntosKml.forEach(p => {
-            let marker = L.circleMarker([p.lat, p.lon], { radius: 8, fillColor: p.color, color: '#fff', weight: 1.5, fillOpacity: 0.9 }).addTo(mapa).bindPopup(`<b>${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
+            let marker = L.circleMarker([p.lat, p.lon], { radius: 8, fillColor: p.color, color: '#fff', weight: 1.5, fillOpacity: 0.9 }).addTo(mapa).bindPopup(`<b>${p.nombre}</b><br>Lat (Col D): ${p.lat}, Lon (Col E): ${p.lon}`);
             markersKml.push(marker);
             bounds.push([p.lat, p.lon]);
         });
