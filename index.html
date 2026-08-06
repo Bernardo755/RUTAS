@@ -80,7 +80,7 @@
         <div id="m_errorMsg" class="error"></div>
 
         <div id="m_resultados" class="resultados">
-            <h3>Visualizador de Ruta Múltiple</h3>
+            <h3>Visualizador de Ruta Múltiple (Satelital)</h3>
             <div id="map"></div>
             <h3>Detalle de Puntos y Distancias</h3>
             <table>
@@ -121,7 +121,7 @@
         <div id="s_errorMsg" class="error"></div>
 
         <div id="s_resultados" class="resultados">
-            <h3>Visualizador de Destinos y Rutas desde el Origen</h3>
+            <h3>Visualizador de Destinos y Rutas desde el Origen (Satelital)</h3>
             <div id="mapSingle"></div>
             <h3>Detalle de Distancias por Destino</h3>
             <table>
@@ -143,11 +143,11 @@
             <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red&#10;19.4512, -99.1523, Biblioteca Sur, Zona Sur, Encargada Maria, Vespertino, blue"></textarea>
         </div>
 
-        <button class="action-btn" onclick="procesarKML()">Generar KML, Ver en Mapa y Descargar Archivo</button>
+        <button class="action-btn" onclick="procesarKML()">Generar KML y Ver en Mapa</button>
         <div id="k_errorMsg" class="error"></div>
 
         <div id="k_resultados" class="resultados">
-            <h3>Visualizador de Puntos KML en Mapa</h3>
+            <h3>Visualizador de Puntos KML en Mapa Satelital</h3>
             <div id="mapKml"></div>
             <h3>Detalle de Puntos Procesados</h3>
             <table>
@@ -157,7 +157,7 @@
                 <tbody id="k_tablaBody"></tbody>
             </table>
             <div class="links-container">
-                <a id="k_btnDescarga" class="btn-link" href="#" download="puntos_personalizados.kml">📥 Descargar Archivo KML Nuevamente</a>
+                <a id="k_btnDescarga" class="btn-link" href="#" download="puntos_personalizados.kml">📥 Descargar Archivo KML</a>
             </div>
         </div>
     </div>
@@ -170,6 +170,14 @@
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
     let markersKml = [];
+
+    // Capa Satelital (Esri World Imagery) para todas las vistas
+    function agregarCapaSatelital(mapa) {
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-eGIS, and the GIS User Community'
+        }).addTo(mapa);
+    }
 
     function cambiarPestana(tipo) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -269,8 +277,8 @@
                         <td><strong>${puntos[i+1].nombre}</strong></td>
                         <td>${puntos[i+1].lat}</td>
                         <td>${puntos[i+1].lon}</td>
-                        <td style="color: #1967d2; font-weight: bold;">${distKm}</td>
-                        <td style="color: #e37400; font-weight: bold;">${durMin}</td>
+                        <td style="color: #6cf; font-weight: bold;">${distKm}</td>
+                        <td style="color: #ffa500; font-weight: bold;">${durMin}</td>
                     </tr>
                 `;
             }
@@ -282,7 +290,7 @@
             
             if (!mapMulti) {
                 mapMulti = L.map('map').setView([oLat, oLon], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapMulti);
+                agregarCapaSatelital(mapMulti);
             } else {
                 mapMulti.setView([oLat, oLon], 13);
                 mapMulti.invalidateSize();
@@ -293,7 +301,7 @@
             markersMulti = [];
 
             let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5, opacity: 0.8 }).addTo(mapMulti);
+            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#00ffff', weight: 5, opacity: 0.8 }).addTo(mapMulti);
             mapMulti.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
             puntos.forEach((p, index) => {
@@ -368,7 +376,6 @@
             return;
         }
 
-        // Consultar cada destino desde el origen en paralelo
         let promesas = destinos.map(d => {
             let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`;
             return fetch(urlOSRM).then(res => res.json()).then(data => ({ destino: d, data }));
@@ -409,8 +416,8 @@
                             <td><strong>${d.nombre}</strong></td>
                             <td>${d.lat}</td>
                             <td>${d.lon}</td>
-                            <td style="color: #1967d2; font-weight: bold;">${distKm.toFixed(2)} km</td>
-                            <td style="color: #e37400; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
+                            <td style="color: #6cf; font-weight: bold;">${distKm.toFixed(2)} km</td>
+                            <td style="color: #ffa500; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
                             <td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 6px 12px; font-size: 12px;">🗺️ Abrir</a></td>
                         </tr>
                     `;
@@ -429,7 +436,7 @@
 
             if (!mapSingle) {
                 mapSingle = L.map('mapSingle').setView([oLat, oLon], 13);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapSingle);
+                agregarCapaSatelital(mapSingle);
             } else {
                 mapSingle.setView([oLat, oLon], 13);
                 mapSingle.invalidateSize();
@@ -444,12 +451,10 @@
 
             let bounds = [[oLat, oLon]];
 
-            // Marcador de Origen
             let markerO = L.marker([oLat, oLon]).addTo(mapSingle)
                 .bindPopup(`<b>Origen:</b> ${nomO}`);
             markersSingle.push(markerO);
 
-            // Marcadores y líneas para cada destino
             validos.forEach((v, i) => {
                 let markerD = L.marker([v.lat, v.lon]).addTo(mapSingle)
                     .bindPopup(`<b>Destino ${i+1}:</b> ${v.nombre}<br>Distancia: ${v.distKm.toFixed(2)} km`);
@@ -457,7 +462,7 @@
                 bounds.push([v.lat, v.lon]);
 
                 let coordsGeoJson = v.geometry.coordinates.map(c => [c[1], c[0]]);
-                let polyline = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapSingle);
+                let polyline = L.polyline(coordsGeoJson, { color: '#00ffff', weight: 4, opacity: 0.7 }).addTo(mapSingle);
                 routeLayerSingle.push(polyline);
             });
 
@@ -549,19 +554,13 @@
         
         let downloadBtn = document.getElementById('k_btnDescarga');
         downloadBtn.href = urlBlob;
-
-        let autoLink = document.createElement('a');
-        autoLink.href = urlBlob;
-        autoLink.download = 'puntos_personalizados.kml';
-        document.body.appendChild(autoLink);
-        autoLink.click();
-        document.body.removeChild(autoLink);
+        // Se elimina la descarga automática para que sea manual al hacer clic en el botón
 
         document.getElementById('k_resultados').style.display = 'block';
 
         if (!mapKml) {
             mapKml = L.map('mapKml').setView([puntosKml[0].lat, puntosKml[0].lon], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapKml);
+            agregarCapaSatelital(mapKml);
         } else {
             mapKml.setView([puntosKml[0].lat, puntosKml[0].lon], 13);
             mapKml.invalidateSize();
@@ -575,10 +574,10 @@
             let marker = L.circleMarker([p.lat, p.lon], {
                 radius: 8,
                 fillColor: p.color,
-                color: '#000',
-                weight: 1,
+                color: '#fff',
+                weight: 1.5,
                 opacity: 1,
-                fillOpacity: 0.8
+                fillOpacity: 0.9
             }).addTo(mapKml)
             .bindPopup(`<b>${p.nombre}</b><br>1: ${p.desc1}<br>2: ${p.desc2}<br>3: ${p.desc3}`);
             
