@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Rutas y Distancias Avanzado</title>
+    <title>Gestor de Rutas, Distancias y KML</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -12,7 +12,7 @@
         .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 950px; width: 100%; }
         
         /* Pestañas */
-        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
         .tab-btn { background: var(--bg); border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
         .tab-btn.active { background: var(--primary); color: white; }
         .tab-content { display: none; }
@@ -28,8 +28,8 @@
         button.action-btn { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
         button.action-btn:hover { background-color: var(--hover); }
         
-        /* Mapa */
-        #map, #mapSingle { height: 400px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
+        /* Mapas */
+        #map, #mapSingle, #mapKml { height: 400px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
         
         .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
@@ -49,8 +49,9 @@
 <div class="container">
     <!-- Pestañas de Navegación -->
     <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple (Varias Paradas)</button>
-        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Ruta Punto a Punto (A a B)</button>
+        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
+        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Ruta A a B</button>
+        <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
     </div>
 
     <!-- MODO 1: RUTA MÚLTIPLE -->
@@ -66,7 +67,7 @@
         <div class="form-group">
             <label>Formato: Latitud, Longitud, Nombre del Punto</label>
             <div class="note">Ejemplo: 19.428,-99.127, Escuela Primaria Juárez</div>
-            <textarea id="m_waypoints" rows="6" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
+            <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
 
         <div class="checkbox-group">
@@ -131,14 +132,43 @@
             <div id="s_contenedorLinks" class="links-container"></div>
         </div>
     </div>
+
+    <!-- MODO 3: MAPA KML -->
+    <div id="tab-kml" class="tab-content">
+        <h2>Generador y Visualizador de Puntos KML</h2>
+        <div class="form-group">
+            <label>Pega o escribe tus puntos (Formato: Latitud, Longitud, Nombre, Desc 1, Desc 2, Desc 3, Color)</label>
+            <div class="note">Colores aceptados en inglés o hex (ej: red, blue, green, #ff5733, orange). Puedes dejar descripciones vacías usando comas consecutivas.</div>
+            <textarea id="k_datos" rows="6" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red&#10;19.4512, -99.1523, Biblioteca Sur, Zona Sur, Encargada Maria, Vespertino, blue"></textarea>
+        </div>
+
+        <button class="action-btn" onclick="procesarKML()">Generar KML, Ver en Mapa y Descargar Archivo</button>
+        <div id="k_errorMsg" class="error"></div>
+
+        <div id="k_resultados" class="resultados">
+            <h3>Visualizador de Puntos KML en Mapa</h3>
+            <div id="mapKml"></div>
+            <h3>Detalle de Puntos Procesados</h3>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Descripción 1</th><th>Descripción 2</th><th>Descripción 3</th><th>Color</th></tr>
+                </thead>
+                <tbody id="k_tablaBody"></tbody>
+            </table>
+            <div class="links-container">
+                <a id="k_btnDescarga" class="btn-link" href="#" download="puntos_personalizados.kml">📥 Descargar Archivo KML Nuevamente</a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let mapMulti = null, mapSingle = null;
+    let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = null, markersSingle = [];
+    let markersKml = [];
 
     function cambiarPestana(tipo) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -148,10 +178,14 @@
             document.querySelectorAll('.tab-btn')[0].classList.add('active');
             document.getElementById('tab-multi').classList.add('active');
             if(mapMulti) mapMulti.invalidateSize();
-        } else {
+        } else if(tipo === 'single') {
             document.querySelectorAll('.tab-btn')[1].classList.add('active');
             document.getElementById('tab-single').classList.add('active');
             if(mapSingle) mapSingle.invalidateSize();
+        } else if(tipo === 'kml') {
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.getElementById('tab-kml').classList.add('active');
+            if(mapKml) mapKml.invalidateSize();
         }
     }
 
@@ -182,7 +216,6 @@
             for (let i = 0; i < lineas.length; i++) {
                 const linea = lineas[i].trim();
                 if (!linea) continue;
-                // Separar por comas o tabulaciones
                 const partes = linea.split(/,|\t/).map(p => p.trim());
                 if (partes.length >= 2) {
                     const lat = parseFloat(partes[0].replace(',', '.'));
@@ -222,7 +255,6 @@
             let distanciaTotal = route.distance / 1000;
             let tiempoTotalSeg = route.duration;
 
-            // Fila 0: Origen
             tablaBody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].nombre}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
 
             for (let i = 0; i < legs.length; i++) {
@@ -247,7 +279,6 @@
 
             document.getElementById('m_resultados').style.display = 'block';
             
-            // Inicializar Mapa Múltiple
             if (!mapMulti) {
                 mapMulti = L.map('map').setView([oLat, oLon], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapMulti);
@@ -270,7 +301,6 @@
                 markersMulti.push(marker);
             });
 
-            // Enlaces de Google Maps en bloques de 10 puntos
             let linkIndex = 1;
             for (let i = 0; i < puntos.length - 1; i += 9) {
                 let bloque = puntos.slice(i, i + 10); 
@@ -291,7 +321,6 @@
             mostrarError('m', "Error de conexión con el servicio de rutas.");
         }
     }
-
 
     // --- MODO 2: RUTA PUNTO A PUNTO (A a B) ---
     async function procesarRutaSimple() {
@@ -334,7 +363,6 @@
             let distKm = (leg.distance / 1000).toFixed(2) + " km";
             let durMin = Math.round(leg.duration / 60) + " min";
 
-            // Llenar tabla
             tablaBody.innerHTML = `
                 <tr><td>Salida (A)</td><td>${nomO}</td><td>${oLat}</td><td>${oLon}</td><td>-</td><td>-</td></tr>
                 <tr><td>Destino (B)</td><td>${nomD}</td><td>${dLat}</td><td>${dLon}</td><td style="color: #1967d2; font-weight: bold;">${distKm}</td><td style="color: #e37400; font-weight: bold;">${durMin}</td></tr>
@@ -345,7 +373,6 @@
 
             document.getElementById('s_resultados').style.display = 'block';
 
-            // Inicializar Mapa Simple
             if (!mapSingle) {
                 mapSingle = L.map('mapSingle').setView([oLat, oLon], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapSingle);
@@ -366,7 +393,6 @@
             let markerB = L.marker([dLat, dLon]).addTo(mapSingle).bindPopup(`<b>Destino:</b> ${nomD}`);
             markersSingle.push(markerA, markerB);
 
-            // Enlace de Google Maps directo A a B
             let gmapsUrl = `https://www.google.com/maps/dir/${oLat},${oLon}/${dLat},${dLon}`;
             let btn = document.createElement('a');
             btn.className = 'btn-link';
@@ -381,8 +407,138 @@
         }
     }
 
+    // --- MODO 3: MAPA KML ---
+    function procesarKML() {
+        document.getElementById('k_errorMsg').style.display = 'none';
+        document.getElementById('k_resultados').style.display = 'none';
+
+        const texto = document.getElementById('k_datos').value.trim();
+        if (!texto) {
+            mostrarError('k', "Por favor, ingresa los datos de los puntos para el KML.");
+            return;
+        }
+
+        const lineas = texto.split('\n');
+        let puntosKml = [];
+
+        for (let i = 0; i < lineas.length; i++) {
+            const linea = lineas[i].trim();
+            if (!linea) continue;
+            const partes = linea.split(/,|\t/).map(p => p.trim());
+            
+            if (partes.length >= 2) {
+                const lat = parseFloat(partes[0].replace(',', '.'));
+                const lon = parseFloat(partes[1].replace(',', '.'));
+                const nombre = partes[2] ? partes[2] : `Punto ${i + 1}`;
+                const desc1 = partes[3] ? partes[3] : '';
+                const desc2 = partes[4] ? partes[4] : '';
+                const desc3 = partes[5] ? partes[5] : '';
+                const color = partes[6] ? partes[6].toLowerCase() : '#1a73e8';
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    puntosKml.push({ lat, lon, nombre, desc1, desc2, desc3, color });
+                }
+            }
+        }
+
+        if (puntosKml.length === 0) {
+            mostrarError('k', "No se encontraron coordenadas válidas. Revisa el formato.");
+            return;
+        }
+
+        // Construir la tabla de resultados
+        const tablaBody = document.getElementById('k_tablaBody');
+        tablaBody.innerHTML = '';
+
+        puntosKml.forEach((p, idx) => {
+            tablaBody.innerHTML += `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${p.nombre}</strong></td>
+                    <td>${p.lat}</td>
+                    <td>${p.lon}</td>
+                    <td>${p.desc1}</td>
+                    <td>${p.desc2}</td>
+                    <td>${p.desc3}</td>
+                    <td><span style="display:inline-block;width:15px;height:15px;background-color:${p.color};border-radius:50%;margin-right:5px;"></span>${p.color}</td>
+                </tr>
+            `;
+        });
+
+        // Construir Contenido del Archivo KML
+        let kmlString = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+        kmlString += `<kml xmlns="http://www.opengis.net/kml/2.2">\n`;
+        kmlString += `<Document>\n`;
+        kmlString += `  <name>Puntos Personalizados - Gestor Web</name>\n`;
+
+        puntosKml.forEach((p, idx) => {
+            kmlString += `  <Placemark>\n`;
+            kmlString += `    <name><![CDATA[${p.nombre}]]></name>\n`;
+            kmlString += `    <description><![CDATA[<b>Desc 1:</b> ${p.desc1}<br><b>Desc 2:</b> ${p.desc2}<br><b>Desc 3:</b> ${p.desc3}]]></description>\n`;
+            kmlString += `    <Point>\n`;
+            kmlString += `      <coordinates>${p.lon},${p.lat},0</coordinates>\n`;
+            kmlString += `    </Point>\n`;
+            kmlString += `  </Placemark>\n`;
+        });
+
+        kmlString += `</Document>\n`;
+        kmlString += `</kml>`;
+
+        // Crear Blob y activar descarga automática
+        let blob = new Blob([kmlString], { type: 'application/vnd.google-earth.kml+xml' });
+        let urlBlob = URL.createObjectURL(blob);
+        
+        let downloadBtn = document.getElementById('k_btnDescarga');
+        downloadBtn.href = urlBlob;
+
+        // Disparar descarga automática en segundo plano
+        let autoLink = document.createElement('a');
+        autoLink.href = urlBlob;
+        autoLink.download = 'puntos_personalizados.kml';
+        document.body.appendChild(autoLink);
+        autoLink.click();
+        document.body.removeChild(autoLink);
+
+        // Mostrar sección de resultados KML y mapa
+        document.getElementById('k_resultados').style.display = 'block';
+
+        // Inicializar mapa KML
+        if (!mapKml) {
+            mapKml = L.map('mapKml').setView([puntosKml[0].lat, puntosKml[0].lon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapKml);
+        } else {
+            mapKml.setView([puntosKml[0].lat, puntosKml[0].lon], 13);
+            mapKml.invalidateSize();
+        }
+
+        markersKml.forEach(m => mapKml.removeLayer(m));
+        markersKml = [];
+
+        let bounds = [];
+        puntosKml.forEach((p) => {
+            let marker = L.circleMarker([p.lat, p.lon], {
+                radius: 8,
+                fillColor: p.color,
+                color: '#000',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(mapKml)
+            .bindPopup(`<b>${p.nombre}</b><br>1: ${p.desc1}<br>2: ${p.desc2}<br>3: ${p.desc3}`);
+            
+            markersKml.push(marker);
+            bounds.push([p.lat, p.lon]);
+        });
+
+        if(bounds.length > 0) {
+            mapKml.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }
+
     function mostrarError(modo, msj) {
-        document.getElementById(modo + '_loader').style.display = 'none';
+        if(document.getElementById(modo + '_loader')) {
+            document.getElementById(modo + '_loader').style.display = 'none';
+        }
         const d = document.getElementById(modo + '_errorMsg');
         d.innerText = msj;
         d.style.display = 'block';
