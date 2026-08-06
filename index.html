@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Rutas y Mapa (Sin API Key)</title>
+    <!-- Leaflet CSS para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 950px; width: 100%; }
+        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+        input[type="text"], textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+        textarea { resize: vertical; font-family: monospace; white-space: pre; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #1967d2; }
+        button { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
+        button:hover { background-color: var(--hover); }
+        
+        /* Mapa */
+        #map { height: 450px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
+        
+        #resultados { display: none; margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
+        th { background-color: #f8f9fa; }
+        .resumen { background: #e6f4ea; border: 1px solid #ceead6; padding: 15px; border-radius: 6px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #137333; }
+        .links-container { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-link { display: inline-block; background: #34a853; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; transition: 0.2s; }
+        .btn-link:hover { background: #2d8c45; }
+        .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
+        .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
+        #loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📍 Generador de Rutas, Distancias y Mapa</h2>
+
+    <!-- Partida -->
+    <h3>1. Punto de Partida</h3>
+    <div class="grid">
+        <div class="form-group">
+            <label>Latitud (Origen):</label>
+            <input type="text" id="origenLat" placeholder="Ej. 19.432608" required>
+        </div>
+        <div class="form-group">
+            <label>Longitud (Origen):</label>
+            <input type="text" id="origenLon" placeholder="Ej. -99.133209" required>
+        </div>
+    </div>
+
+    <!-- Puntos Intermedios -->
+    <h3>2. Puntos a Visitar</h3>
+    <div class="form-group">
+        <label>Pega aquí tus coordenadas (Latitud y Longitud):</label>
+        <div class="note">Una coordenada por línea. Separadas por coma, tabulación o espacio (compatible con Excel).</div>
+        <textarea id="waypoints" rows="6" placeholder="19.42847,-99.12766&#10;19.43555,-99.14111"></textarea>
+    </div>
+
+    <!-- Opciones -->
+    <div class="checkbox-group">
+        <input type="checkbox" id="regreso" style="width: 20px; height: 20px; cursor: pointer;">
+        <label for="regreso" style="margin: 0; cursor: pointer;">¿Agregar regreso al punto de partida al final de la ruta?</label>
+    </div>
+
+    <button onclick="procesarRuta()">Generar Ruta, Calcular y Visualizar en Mapa</button>
+    
+    <div id="loader">Calculando ruta y dibujando mapa... ⏳</div>
+    <div id="errorMsg" class="error"></div>
+
+    <!-- Zona de Resultados -->
+    <div id="resultados">
+        <h3>🗺️ Visualizador de Ruta</h3>
+        <div id="map"></div>
+
+        <h3>📊 Detalle de Distancias y Tiempos</h3>
+        <table id="tablaRuta">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tipo</th>
+                    <th>Latitud</th>
+                    <th>Longitud</th>
+                    <th>Distancia</th>
+                    <th>Tiempo Estimado</th>
+                </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
+
+        <div class="resumen" id="totalDistancia"></div>
+
+        <h3>🔗 Enlaces directos a Google Maps</h3>
+        <div class="note">Google Maps permite abrir hasta 10 puntos por enlace de manera nativa. Si tu ruta es más larga, se creará un botón por cada bloque de tramos.</div>
+        <div id="contenedorLinks" class="links-container"></div>
+    </div>
+</div>
+
+<!-- Leaflet JS para el mapa -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let map = null;
+    let routeLayer = null;
+    let markersLayer = [];
+
+    function initMap(lat, lon) {
+        if (!map) {
+            map = L.map('map').setView([lat, lon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+        } else {
+            map.setView([lat, lon], 13);
+        }
+    }
+
+    async function procesarRuta() {
+        document.getElementById('errorMsg').style.display = 'none';
+        document.getElementById('resultados').style.display = 'none';
+        document.getElementById('loader').style.display = 'block';
+
+        const tablaBody = document.getElementById('tablaBody');
+        const linksContainer = document.getElementById('contenedorLinks');
+        tablaBody.innerHTML = '';
+        linksContainer.innerHTML = '';
+
+        // 1. Obtener Origen
+        const oLat = parseFloat(document.getElementById('origenLat').value.replace(',', '.'));
+        const oLon = parseFloat(document.getElementById('origenLon').value.replace(',', '.'));
+
+        if (isNaN(oLat) || isNaN(oLon)) {
+            mostrarError("Faltan las coordenadas de origen o son incorrectas.");
+            document.getElementById('loader').style.display = 'none';
+            return;
+        }
+
+        let puntos = [];
+        puntos.push({ tipo: 'Partida', lat: oLat, lon: oLon });
+
+        // 2. Procesar puntos intermedios
+        const texto = document.getElementById('waypoints').value.trim();
+        if (texto) {
+            const lineas = texto.split('\n');
+            for (let i = 0; i < lineas.length; i++) {
+                const linea = lineas[i].trim();
+                if (!linea) continue;
+                const partes = linea.split(/[,\t ]+/).filter(p => p !== '');
+                if (partes.length >= 2) {
+                    const lat = parseFloat(partes[0].replace(',', '.'));
+                    const lon = parseFloat(partes[1].replace(',', '.'));
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        puntos.push({ tipo: 'Parada ' + puntos.length, lat: lat, lon: lon });
+                    }
+                }
+            }
+        }
+
+        // 3. Evaluar regreso
+        if (document.getElementById('regreso').checked && puntos.length > 1) {
+            puntos.push({ tipo: 'Regreso (Partida)', lat: oLat, lon: oLon });
+        }
+
+        if (puntos.length === 1) {
+            mostrarError("Agrega al menos una coordenada para visitar.");
+            document.getElementById('loader').style.display = 'none';
+            return;
+        }
+
+        // 4. Consultar servicio OSRM gratuito para obtener geometría de ruta y distancias reales
+        // Formato OSRM requiere longitud,latitud separadas por punto y coma
+        let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
+        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
+
+        try {
+            let response = await fetch(urlOSRM);
+            let data = await response.json();
+
+            document.getElementById('loader').style.display = 'none';
+
+            if (data.code !== 'Ok') {
+                mostrarError("No se pudo calcular la ruta con los puntos proporcionados.");
+                return;
+            }
+
+            let route = data.routes[0];
+            let legs = route.legs; // Tramos entre cada punto
+            let distanciaTotal = route.distance / 1000; // en km
+            let tiempoTotalSeg = route.duration; // en segundos
+
+            // 5. Poblar tabla
+            // Fila 0: Partida
+            tablaBody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].tipo}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
+
+            for (let i = 0; i < legs.length; i++) {
+                let leg = legs[i];
+                let distKm = (leg.distance / 1000).toFixed(2) + " km";
+                let durMin = Math.round(leg.duration / 60) + " min";
+
+                tablaBody.innerHTML += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${puntos[i+1].tipo}</strong></td>
+                        <td>${puntos[i+1].lat}</td>
+                        <td>${puntos[i+1].lon}</td>
+                        <td style="color: #1967d2; font-weight: bold;">${distKm}</td>
+                        <td style="color: #e37400; font-weight: bold;">${durMin}</td>
+                    </tr>
+                `;
+            }
+
+            document.getElementById('totalDistancia').innerHTML = 
+                `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo estimado al volante: ${Math.round(tiempoTotalSeg / 60)} minutos`;
+
+            // 6. Mostrar Resultados y Mapa
+            document.getElementById('resultados').style.display = 'block';
+            
+            initMap(oLat, oLon);
+
+            // Limpiar marcadores y rutas anteriores del mapa
+            if (routeLayer) map.removeLayer(routeLayer);
+            markersLayer.forEach(m => map.removeLayer(m));
+            markersLayer = [];
+
+            // Dibujar línea de ruta en el mapa
+            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]); // Invertir de [lon, lat] a [lat, lon] para Leaflet
+            routeLayer = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5, opacity: 0.8 }).addTo(map);
+            map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+
+            // Agregar marcadores para cada punto
+            puntos.forEach((p, index) => {
+                let marker = L.marker([p.lat, p.lon]).addTo(map)
+                    .bindPopup(`<b>${index}. ${p.tipo}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
+                markersLayer.push(marker);
+            });
+
+            // 7. Generar enlaces divididos para Google Maps (límite de 10 puntos por URL)
+            let linkIndex = 1;
+            for (let i = 0; i < puntos.length - 1; i += 9) {
+                let bloque = puntos.slice(i, i + 10); 
+                let gmapsUrl = "https://www.google.com/maps/dir/" + bloque.map(p => `${p.lat},${p.lon}`).join('/');
+                
+                let btn = document.createElement('a');
+                btn.className = 'btn-link';
+                btn.href = gmapsUrl;
+                btn.target = '_blank';
+                btn.innerText = (puntos.length <= 10) ? "📍 Abrir Ruta en Google Maps" : `📍 Abrir Parte ${linkIndex} en Google Maps (Puntos ${i} al ${Math.min(i + 9, puntos.length - 1)})`;
+                
+                linksContainer.appendChild(btn);
+                linkIndex++;
+            }
+
+        } catch (error) {
+            document.getElementById('loader').style.display = 'none';
+            mostrarError("Hubo un error de conexión al procesar la ruta.");
+        }
+    }
+
+    function mostrarError(msj) {
+        const d = document.getElementById('errorMsg');
+        d.innerText = msj;
+        d.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
