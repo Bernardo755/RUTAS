@@ -3,13 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Rutas y Mapa (Sin API Key)</title>
+    <title>Gestor de Rutas y Distancias Avanzado</title>
     <!-- Leaflet CSS para el mapa -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 950px; width: 100%; }
+        
+        /* Pestañas */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { background: var(--bg); border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
@@ -17,13 +25,13 @@
         input[type="text"], textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
         textarea { resize: vertical; font-family: monospace; white-space: pre; }
         .checkbox-group { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #1967d2; }
-        button { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
-        button:hover { background-color: var(--hover); }
+        button.action-btn { background-color: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
+        button.action-btn:hover { background-color: var(--hover); }
         
         /* Mapa */
-        #map { height: 450px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
+        #map, #mapSingle { height: 400px; width: 100%; border-radius: 8px; margin-top: 20px; border: 1px solid var(--border); z-index: 1; }
         
-        #resultados { display: none; margin-top: 30px; }
+        .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
         th { background-color: #f8f9fa; }
@@ -33,169 +41,189 @@
         .btn-link:hover { background: #2d8c45; }
         .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
         .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
-        #loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
+        .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📍 Generador de Rutas, Distancias y Mapa</h2>
+    <!-- Pestañas de Navegación -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple (Varias Paradas)</button>
+        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Ruta Punto a Punto (A a B)</button>
+    </div>
 
-    <!-- Partida -->
-    <h3>1. Punto de Partida</h3>
-    <div class="grid">
-        <div class="form-group">
-            <label>Latitud (Origen):</label>
-            <input type="text" id="origenLat" placeholder="Ej. 19.432608" required>
+    <!-- MODO 1: RUTA MÚLTIPLE -->
+    <div id="tab-multi" class="tab-content active">
+        <h2>Generador de Rutas Múltiples</h2>
+        <h3>1. Punto de Partida</h3>
+        <div class="grid">
+            <div class="form-group"><label>Latitud (Origen):</label><input type="text" id="m_origenLat" placeholder="Ej. 19.4326"></div>
+            <div class="form-group"><label>Longitud (Origen):</label><input type="text" id="m_origenLon" placeholder="Ej. -99.1332"></div>
         </div>
+
+        <h3>2. Puntos a Visitar</h3>
         <div class="form-group">
-            <label>Longitud (Origen):</label>
-            <input type="text" id="origenLon" placeholder="Ej. -99.133209" required>
+            <label>Formato: Latitud, Longitud, Nombre del Punto</label>
+            <div class="note">Ejemplo: 19.428,-99.127, Escuela Primaria Juárez</div>
+            <textarea id="m_waypoints" rows="6" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="m_regreso" style="width: 20px; height: 20px; cursor: pointer;">
+            <label for="m_regreso" style="margin: 0; cursor: pointer;">¿Agregar regreso al punto de partida al final?</label>
+        </div>
+
+        <button class="action-btn" onclick="procesarRutaMultiple()">Procesar Ruta Múltiple</button>
+        <div id="m_loader" class="loader">Calculando ruta y dibujando mapa... ⏳</div>
+        <div id="m_errorMsg" class="error"></div>
+
+        <div id="m_resultados" class="resultados">
+            <h3>Visualizador de Ruta Múltiple</h3>
+            <div id="map"></div>
+            <h3>Detalle de Puntos y Distancias</h3>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Nombre / Punto</th><th>Latitud</th><th>Longitud</th><th>Distancia tramo</th><th>Tiempo</th></tr>
+                </thead>
+                <tbody id="m_tablaBody"></tbody>
+            </table>
+            <div class="resumen" id="m_totalDistancia"></div>
+            <h3>Enlaces para Google Maps</h3>
+            <div id="m_contenedorLinks" class="links-container"></div>
         </div>
     </div>
 
-    <!-- Puntos Intermedios -->
-    <h3>2. Puntos a Visitar</h3>
-    <div class="form-group">
-        <label>Pega aquí tus coordenadas (Latitud y Longitud):</label>
-        <div class="note">Una coordenada por línea. Separadas por coma, tabulación o espacio (compatible con Excel).</div>
-        <textarea id="waypoints" rows="6" placeholder="19.42847,-99.12766&#10;19.43555,-99.14111"></textarea>
-    </div>
+    <!-- MODO 2: RUTA PUNTO A PUNTO (A a B) -->
+    <div id="tab-single" class="tab-content">
+        <h2>Ruta Punto a Punto (Salida a Destino)</h2>
+        <div class="grid">
+            <div class="form-group">
+                <h3>Punto de Salida</h3>
+                <label>Latitud:</label><input type="text" id="s_origenLat" placeholder="Ej. 19.4326">
+                <label style="margin-top:5px;">Longitud:</label><input type="text" id="s_origenLon" placeholder="Ej. -99.1332">
+                <label style="margin-top:5px;">Nombre Salida (Opcional):</label><input type="text" id="s_nombreOrigen" placeholder="Ej. Almacén Central">
+            </div>
+            <div class="form-group">
+                <h3>Punto de Destino</h3>
+                <label>Latitud:</label><input type="text" id="s_destinoLat" placeholder="Ej. 19.5012">
+                <label style="margin-top:5px;">Longitud:</label><input type="text" id="s_destinoLon" placeholder="Ej. -99.1823">
+                <label style="margin-top:5px;">Nombre Destino (Opcional):</label><input type="text" id="s_nombreDestino" placeholder="Ej. Sucursa Norte">
+            </div>
+        </div>
 
-    <!-- Opciones -->
-    <div class="checkbox-group">
-        <input type="checkbox" id="regreso" style="width: 20px; height: 20px; cursor: pointer;">
-        <label for="regreso" style="margin: 0; cursor: pointer;">¿Agregar regreso al punto de partida al final de la ruta?</label>
-    </div>
+        <button class="action-btn" onclick="procesarRutaSimple()">Calcular Distancia y Ver Ruta A-B</button>
+        <div id="s_loader" class="loader">Calculando tramo único... ⏳</div>
+        <div id="s_errorMsg" class="error"></div>
 
-    <button onclick="procesarRuta()">Generar Ruta, Calcular y Visualizar en Mapa</button>
-    
-    <div id="loader">Calculando ruta y dibujando mapa... ⏳</div>
-    <div id="errorMsg" class="error"></div>
-
-    <!-- Zona de Resultados -->
-    <div id="resultados">
-        <h3>🗺️ Visualizador de Ruta</h3>
-        <div id="map"></div>
-
-        <h3>📊 Detalle de Distancias y Tiempos</h3>
-        <table id="tablaRuta">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Tipo</th>
-                    <th>Latitud</th>
-                    <th>Longitud</th>
-                    <th>Distancia</th>
-                    <th>Tiempo Estimado</th>
-                </tr>
-            </thead>
-            <tbody id="tablaBody"></tbody>
-        </table>
-
-        <div class="resumen" id="totalDistancia"></div>
-
-        <h3>🔗 Enlaces directos a Google Maps</h3>
-        <div class="note">Google Maps permite abrir hasta 10 puntos por enlace de manera nativa. Si tu ruta es más larga, se creará un botón por cada bloque de tramos.</div>
-        <div id="contenedorLinks" class="links-container"></div>
+        <div id="s_resultados" class="resultados">
+            <h3>Visualizador de Trayecto</h3>
+            <div id="mapSingle"></div>
+            <h3>Detalle del Trayecto</h3>
+            <table>
+                <thead>
+                    <tr><th>Punto</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Distancia Real</th><th>Tiempo Estimado</th></tr>
+                </thead>
+                <tbody id="s_tablaBody"></tbody>
+            </table>
+            <div class="resumen" id="s_totalDistancia"></div>
+            <h3>Enlace Directo</h3>
+            <div id="s_contenedorLinks" class="links-container"></div>
+        </div>
     </div>
 </div>
 
-<!-- Leaflet JS para el mapa -->
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let map = null;
-    let routeLayer = null;
-    let markersLayer = [];
+    let mapMulti = null, mapSingle = null;
+    let routeLayerMulti = null, markersMulti = [];
+    let routeLayerSingle = null, markersSingle = [];
 
-    function initMap(lat, lon) {
-        if (!map) {
-            map = L.map('map').setView([lat, lon], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+    function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        if(tipo === 'multi') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-multi').classList.add('active');
+            if(mapMulti) mapMulti.invalidateSize();
         } else {
-            map.setView([lat, lon], 13);
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-single').classList.add('active');
+            if(mapSingle) mapSingle.invalidateSize();
         }
     }
 
-    async function procesarRuta() {
-        document.getElementById('errorMsg').style.display = 'none';
-        document.getElementById('resultados').style.display = 'none';
-        document.getElementById('loader').style.display = 'block';
+    // --- MODO 1: RUTA MÚLTIPLE ---
+    async function procesarRutaMultiple() {
+        document.getElementById('m_errorMsg').style.display = 'none';
+        document.getElementById('m_resultados').style.display = 'none';
+        document.getElementById('m_loader').style.display = 'block';
 
-        const tablaBody = document.getElementById('tablaBody');
-        const linksContainer = document.getElementById('contenedorLinks');
+        const tablaBody = document.getElementById('m_tablaBody');
+        const linksContainer = document.getElementById('m_contenedorLinks');
         tablaBody.innerHTML = '';
         linksContainer.innerHTML = '';
 
-        // 1. Obtener Origen
-        const oLat = parseFloat(document.getElementById('origenLat').value.replace(',', '.'));
-        const oLon = parseFloat(document.getElementById('origenLon').value.replace(',', '.'));
+        const oLat = parseFloat(document.getElementById('m_origenLat').value.replace(',', '.'));
+        const oLon = parseFloat(document.getElementById('m_origenLon').value.replace(',', '.'));
 
         if (isNaN(oLat) || isNaN(oLon)) {
-            mostrarError("Faltan las coordenadas de origen o son incorrectas.");
-            document.getElementById('loader').style.display = 'none';
+            mostrarError('m', "Faltan las coordenadas de origen o son incorrectas.");
             return;
         }
 
-        let puntos = [];
-        puntos.push({ tipo: 'Partida', lat: oLat, lon: oLon });
+        let puntos = [{ tipo: 'Punto de Partida', lat: oLat, lon: oLon, nombre: 'Origen Principal' }];
 
-        // 2. Procesar puntos intermedios
-        const texto = document.getElementById('waypoints').value.trim();
+        const texto = document.getElementById('m_waypoints').value.trim();
         if (texto) {
             const lineas = texto.split('\n');
             for (let i = 0; i < lineas.length; i++) {
                 const linea = lineas[i].trim();
                 if (!linea) continue;
-                const partes = linea.split(/[,\t ]+/).filter(p => p !== '');
+                // Separar por comas o tabulaciones
+                const partes = linea.split(/,|\t/).map(p => p.trim());
                 if (partes.length >= 2) {
                     const lat = parseFloat(partes[0].replace(',', '.'));
                     const lon = parseFloat(partes[1].replace(',', '.'));
+                    const nombre = partes[2] ? partes[2] : `Parada ${puntos.length}`;
                     if (!isNaN(lat) && !isNaN(lon)) {
-                        puntos.push({ tipo: 'Parada ' + puntos.length, lat: lat, lon: lon });
+                        puntos.push({ tipo: `Parada ${puntos.length}`, lat: lat, lon: lon, nombre: nombre });
                     }
                 }
             }
         }
 
-        // 3. Evaluar regreso
-        if (document.getElementById('regreso').checked && puntos.length > 1) {
-            puntos.push({ tipo: 'Regreso (Partida)', lat: oLat, lon: oLon });
+        if (document.getElementById('m_regreso').checked && puntos.length > 1) {
+            puntos.push({ tipo: 'Regreso', lat: oLat, lon: oLon, nombre: 'Regreso al Origen' });
         }
 
         if (puntos.length === 1) {
-            mostrarError("Agrega al menos una coordenada para visitar.");
-            document.getElementById('loader').style.display = 'none';
+            mostrarError('m', "Agrega al menos una coordenada válida para visitar.");
             return;
         }
 
-        // 4. Consultar servicio OSRM gratuito para obtener geometría de ruta y distancias reales
-        // Formato OSRM requiere longitud,latitud separadas por punto y coma
         let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
         let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
 
         try {
             let response = await fetch(urlOSRM);
             let data = await response.json();
-
-            document.getElementById('loader').style.display = 'none';
+            document.getElementById('m_loader').style.display = 'none';
 
             if (data.code !== 'Ok') {
-                mostrarError("No se pudo calcular la ruta con los puntos proporcionados.");
+                mostrarError('m', "No se pudo calcular la ruta con los puntos proporcionados.");
                 return;
             }
 
             let route = data.routes[0];
-            let legs = route.legs; // Tramos entre cada punto
-            let distanciaTotal = route.distance / 1000; // en km
-            let tiempoTotalSeg = route.duration; // en segundos
+            let legs = route.legs;
+            let distanciaTotal = route.distance / 1000;
+            let tiempoTotalSeg = route.duration;
 
-            // 5. Poblar tabla
-            // Fila 0: Partida
-            tablaBody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].tipo}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
+            // Fila 0: Origen
+            tablaBody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].nombre}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
 
             for (let i = 0; i < legs.length; i++) {
                 let leg = legs[i];
@@ -205,7 +233,7 @@
                 tablaBody.innerHTML += `
                     <tr>
                         <td>${i + 1}</td>
-                        <td><strong>${puntos[i+1].tipo}</strong></td>
+                        <td><strong>${puntos[i+1].nombre}</strong></td>
                         <td>${puntos[i+1].lat}</td>
                         <td>${puntos[i+1].lon}</td>
                         <td style="color: #1967d2; font-weight: bold;">${distKm}</td>
@@ -214,32 +242,35 @@
                 `;
             }
 
-            document.getElementById('totalDistancia').innerHTML = 
-                `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo estimado al volante: ${Math.round(tiempoTotalSeg / 60)} minutos`;
+            document.getElementById('m_totalDistancia').innerHTML = 
+                `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalSeg / 60)} min`;
 
-            // 6. Mostrar Resultados y Mapa
-            document.getElementById('resultados').style.display = 'block';
+            document.getElementById('m_resultados').style.display = 'block';
             
-            initMap(oLat, oLon);
+            // Inicializar Mapa Múltiple
+            if (!mapMulti) {
+                mapMulti = L.map('map').setView([oLat, oLon], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapMulti);
+            } else {
+                mapMulti.setView([oLat, oLon], 13);
+                mapMulti.invalidateSize();
+            }
 
-            // Limpiar marcadores y rutas anteriores del mapa
-            if (routeLayer) map.removeLayer(routeLayer);
-            markersLayer.forEach(m => map.removeLayer(m));
-            markersLayer = [];
+            if (routeLayerMulti) mapMulti.removeLayer(routeLayerMulti);
+            markersMulti.forEach(m => mapMulti.removeLayer(m));
+            markersMulti = [];
 
-            // Dibujar línea de ruta en el mapa
-            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]); // Invertir de [lon, lat] a [lat, lon] para Leaflet
-            routeLayer = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5, opacity: 0.8 }).addTo(map);
-            map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5, opacity: 0.8 }).addTo(mapMulti);
+            mapMulti.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
-            // Agregar marcadores para cada punto
             puntos.forEach((p, index) => {
-                let marker = L.marker([p.lat, p.lon]).addTo(map)
-                    .bindPopup(`<b>${index}. ${p.tipo}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
-                markersLayer.push(marker);
+                let marker = L.marker([p.lat, p.lon]).addTo(mapMulti)
+                    .bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
+                markersMulti.push(marker);
             });
 
-            // 7. Generar enlaces divididos para Google Maps (límite de 10 puntos por URL)
+            // Enlaces de Google Maps en bloques de 10 puntos
             let linkIndex = 1;
             for (let i = 0; i < puntos.length - 1; i += 9) {
                 let bloque = puntos.slice(i, i + 10); 
@@ -249,20 +280,110 @@
                 btn.className = 'btn-link';
                 btn.href = gmapsUrl;
                 btn.target = '_blank';
-                btn.innerText = (puntos.length <= 10) ? "📍 Abrir Ruta en Google Maps" : `📍 Abrir Parte ${linkIndex} en Google Maps (Puntos ${i} al ${Math.min(i + 9, puntos.length - 1)})`;
+                btn.innerText = (puntos.length <= 10) ? "📍 Abrir Ruta en Google Maps" : `📍 Abrir Parte ${linkIndex} en Google Maps`;
                 
                 linksContainer.appendChild(btn);
                 linkIndex++;
             }
 
         } catch (error) {
-            document.getElementById('loader').style.display = 'none';
-            mostrarError("Hubo un error de conexión al procesar la ruta.");
+            document.getElementById('m_loader').style.display = 'none';
+            mostrarError('m', "Error de conexión con el servicio de rutas.");
         }
     }
 
-    function mostrarError(msj) {
-        const d = document.getElementById('errorMsg');
+
+    // --- MODO 2: RUTA PUNTO A PUNTO (A a B) ---
+    async function procesarRutaSimple() {
+        document.getElementById('s_errorMsg').style.display = 'none';
+        document.getElementById('s_resultados').style.display = 'none';
+        document.getElementById('s_loader').style.display = 'block';
+
+        const tablaBody = document.getElementById('s_tablaBody');
+        const linksContainer = document.getElementById('s_contenedorLinks');
+        tablaBody.innerHTML = '';
+        linksContainer.innerHTML = '';
+
+        const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
+        const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
+        const dLat = parseFloat(document.getElementById('s_destinoLat').value.replace(',', '.'));
+        const dLon = parseFloat(document.getElementById('s_destinoLon').value.replace(',', '.'));
+        const nomO = document.getElementById('s_nombreOrigen').value.trim() || "Punto de Salida";
+        const nomD = document.getElementById('s_nombreDestino').value.trim() || "Punto de Destino";
+
+        if (isNaN(oLat) || isNaN(oLon) || isNaN(dLat) || isNaN(dLon)) {
+            mostrarError('s', "Verifica que todas las coordenadas de salida y destino sean válidas.");
+            return;
+        }
+
+        let coordsString = `${oLon},${oLat};${dLon},${dLat}`;
+        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
+
+        try {
+            let response = await fetch(urlOSRM);
+            let data = await response.json();
+            document.getElementById('s_loader').style.display = 'none';
+
+            if (data.code !== 'Ok') {
+                mostrarError('s', "No se pudo calcular la ruta entre ambos puntos.");
+                return;
+            }
+
+            let route = data.routes[0];
+            let leg = route.legs[0];
+            let distKm = (leg.distance / 1000).toFixed(2) + " km";
+            let durMin = Math.round(leg.duration / 60) + " min";
+
+            // Llenar tabla
+            tablaBody.innerHTML = `
+                <tr><td>Salida (A)</td><td>${nomO}</td><td>${oLat}</td><td>${oLon}</td><td>-</td><td>-</td></tr>
+                <tr><td>Destino (B)</td><td>${nomD}</td><td>${dLat}</td><td>${dLon}</td><td style="color: #1967d2; font-weight: bold;">${distKm}</td><td style="color: #e37400; font-weight: bold;">${durMin}</td></tr>
+            `;
+
+            document.getElementById('s_totalDistancia').innerHTML = 
+                `Distancia de Trayecto: ${distKm} | Tiempo estimado de manejo: ${durMin}`;
+
+            document.getElementById('s_resultados').style.display = 'block';
+
+            // Inicializar Mapa Simple
+            if (!mapSingle) {
+                mapSingle = L.map('mapSingle').setView([oLat, oLon], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapSingle);
+            } else {
+                mapSingle.setView([oLat, oLon], 13);
+                mapSingle.invalidateSize();
+            }
+
+            if (routeLayerSingle) mapSingle.removeLayer(routeLayerSingle);
+            markersSingle.forEach(m => mapSingle.removeLayer(m));
+            markersSingle = [];
+
+            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
+            routeLayerSingle = L.polyline(coordsGeoJson, { color: '#34a853', weight: 5, opacity: 0.8 }).addTo(mapSingle);
+            mapSingle.fitBounds(routeLayerSingle.getBounds(), { padding: [50, 50] });
+
+            let markerA = L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>Salida:</b> ${nomO}`);
+            let markerB = L.marker([dLat, dLon]).addTo(mapSingle).bindPopup(`<b>Destino:</b> ${nomD}`);
+            markersSingle.push(markerA, markerB);
+
+            // Enlace de Google Maps directo A a B
+            let gmapsUrl = `https://www.google.com/maps/dir/${oLat},${oLon}/${dLat},${dLon}`;
+            let btn = document.createElement('a');
+            btn.className = 'btn-link';
+            btn.href = gmapsUrl;
+            btn.target = '_blank';
+            btn.innerText = "🗺️ Abrir Ruta Directa en Google Maps";
+            linksContainer.appendChild(btn);
+
+        } catch (error) {
+            document.getElementById('s_loader').style.display = 'none';
+            mostrarError('s', "Error de conexión con el servicio de mapas.");
+        }
+    }
+
+    function mostrarError(modo, msj) {
+        document.getElementById(modo + '_loader').style.display = 'none';
+        const d = document.getElementById(modo + '_errorMsg');
         d.innerText = msj;
         d.style.display = 'block';
     }
