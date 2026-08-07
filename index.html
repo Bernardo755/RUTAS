@@ -102,13 +102,9 @@
  <!-- Pestañas de Navegación -->
 
     <div class="tabs">
-
         <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
-
         <button class="tab-btn" onclick="cambiarPestana('single')">➡️ EscxEsc</button>
-
         <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
-
     </div> 
 
 
@@ -240,11 +236,9 @@
     let subprocesoActivo = '';
     let tempDatosGuardar = null;
 
-    let mapMulti = null, mapSingle = null, mapKml = null;
+   let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
-
-
 
     function cambiarCapaMapa(claveMapa, estilo) {
         let mapa = null;
@@ -262,22 +256,6 @@
     }
 
 
-function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
-        document.getElementById(`tab-${tipo}`).classList.add('active');
-        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
-        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
-        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
-    }
-
-    function mostrarError(modo, msg) {
-        let el = document.getElementById(modo + '_errorMsg');
-        el.innerText = msg;
-        el.style.display = 'block';
-
-    
 
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
@@ -452,6 +430,28 @@ async function enviarABitacora() {
         return m;
     }
 
+function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
+        document.getElementById(`tab-${tipo}`).classList.add('active');
+        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
+        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
+        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
+    }
+
+    function mostrarError(modo, msg) {
+        let el = document.getElementById(modo + '_errorMsg');
+        el.innerText = msg;
+        el.style.display = 'block';
+
+
+ }
+
+
+
+
+    
 
     // GENERAR URL GOOGLE MAPS DIRECTA
     function generarGoogleMapsUrl(puntos) {
