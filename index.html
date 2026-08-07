@@ -96,15 +96,27 @@
 <!-- ============================================== -->
 <!-- CONTENEDOR DE LA APP -->
 <!-- ============================================== -->
-<div id="app-container" class="container" style="display: none;">
-    
-    <!-- Pestañas de Navegación -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
-        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ EscxEsc</button>
-        <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
-    </div>
+<!-- Pestañas de Navegación -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
+    <button class="tab-btn" onclick="cambiarPestana('single')">➡️ EscxEsc</button>
+    <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
+</div>
 
+<!-- Contenido 1: Ruta Múltiple -->
+<div id="tab-multi" class="tab-content" style="display: block;">
+    <div id="mapMulti" style="height: 450px; width: 100%;"></div>
+</div>
+
+<!-- Contenido 2: EscxEsc -->
+<div id="tab-single" class="tab-content" style="display: none;">
+    <div id="mapSingle" style="height: 450px; width: 100%;"></div>
+</div>
+
+<!-- Contenido 3: Mapa KML -->
+<div id="tab-kml" class="tab-content" style="display: none;">
+    <div id="mapKml" style="height: 450px; width: 100%;"></div>
+</div>
     <!-- MODO 1: RUTA MÚLTIPLE -->
     <div id="tab-multi" class="tab-content active">
         <h2>Generador de Rutas Múltiples (Secuencial)</h2>
@@ -407,28 +419,46 @@
         return m;
     }
 
-    function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
-        document.getElementById(`tab-${tipo}`).classList.add('active');
+// 🟢 FUNCIÓN CONTROLADORA DE PESTAÑAS (Con solución para visores de mapa)
+function cambiarPestana(pestana) {
+    // 1. Desactivar todos los botones de pestañas y activar el seleccionado
+    const botones = document.querySelectorAll('.tab-btn');
+    botones.forEach(btn => btn.classList.remove('active'));
+    
+    // Buscar el botón presionado por su atributo onclick o evento
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
 
-// 🟢 REPARACIÓN DE VISORES:
-    // Esperamos un breve instante (100ms) para que el CSS cambie la visibilidad de display:none a block
+    // 2. Ocultar todos los contenedores de las pestañas
+    // (Asegúrate de que tus secciones tengan clases o IDs correspondientes)
+    const contenidos = document.querySelectorAll('.tab-content');
+    contenidos.forEach(c => c.style.display = 'none');
+
+    // 3. Mostrar la pestaña seleccionada
+    const tabSeleccionada = document.getElementById(`tab-${pestana}`);
+    if (tabSeleccionada) {
+        tabSeleccionada.style.display = 'block';
+    }
+
+    // 🟢 4. REPARACIÓN DEL MAPA: Notificar a Leaflet para recalcular tamaño
+    // Se usa un retardo de 150ms para permitir que el navegador aplique 'display: block'
     setTimeout(() => {
-        if (mapSingle) {
-            mapSingle.invalidateSize(); // Forzar recálculo de tamaño
+        // Redibujar mapa de la pestaña "single" (EscxEsc)
+        if (pestana === 'single' && typeof mapSingle !== 'undefined' && mapSingle) {
+            mapSingle.invalidateSize();
         }
-        if (mapMulti) { // Si tu otro mapa se llama mapMulti (o como lo hayas nombrado)
+        
+        // Redibujar mapa de la pestaña "multi" (Ruta Múltiple)
+        if (pestana === 'multi' && typeof mapMulti !== 'undefined' && mapMulti) {
             mapMulti.invalidateSize();
         }
-    }, 100);
 
-        
-        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
-        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
-        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
-
+        // Redibujar mapa de la pestaña "kml" (Mapa KML)
+        if (pestana === 'kml' && typeof mapKml !== 'undefined' && mapKml) {
+            mapKml.invalidateSize();
+        }
+    }, 150);
 }
 
 
