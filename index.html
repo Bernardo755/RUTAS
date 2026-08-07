@@ -416,7 +416,25 @@
         if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
         if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
     }
+// Agrega este código dentro del evento/función que activa el cambio de pestaña
+function cambiarPestana(nombrePestana) {
+    // ... Tu código actual para mostrar/ocultar secciones o pestañas ...
 
+    // 🟢 REPARACIÓN DE VISORES:
+    // Esperamos un breve instante (100ms) para que el CSS cambie la visibilidad de display:none a block
+    setTimeout(() => {
+        if (mapSingle) {
+            mapSingle.invalidateSize(); // Forzar recálculo de tamaño
+        }
+        if (mapMulti) { // Si tu otro mapa se llama mapMulti (o como lo hayas nombrado)
+            mapMulti.invalidateSize();
+        }
+    }, 100);
+}
+
+
+
+    
     function mostrarError(modo, msg) {
         let el = document.getElementById(modo + '_errorMsg');
         el.innerText = msg;
