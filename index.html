@@ -240,23 +240,7 @@
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
 
-    function cambiarCapaMapa(claveMapa, estilo) {
-        let mapa = null;
-        if (claveMapa === 'multi') mapa = mapMulti;
-        if (claveMapa === 'single') mapa = mapSingle;
-        if (claveMapa === 'kml') mapa = mapKml;
-
-        if (!mapa) return;
-
-        if (currentLayers[claveMapa]) {
-            mapa.removeLayer(currentLayers[claveMapa]);
-        }
-
-        currentLayers[claveMapa] = obtenerCapaTile(estilo).addTo(mapa);
-    }
-
-
-
+    
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
