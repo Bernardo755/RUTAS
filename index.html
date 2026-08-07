@@ -417,43 +417,52 @@
     }
 
     // --- SINCRONIZACIÓN CON GOOGLE SHEETS ---
-    async function sincronizarDesdeSheets(mostrarAlerta = false) {
-        document.getElementById('dbStatusMsg').innerText = "Sincronizando con Google Sheets... ⏳";
+   // --- CARGA INTELIGENTE ---
+async function inicializar() {
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('loader').innerText = "Verificando datos locales...";
 
-        try {
-            let response = await fetch(SHEETS_WEBAPP_URL);
-            let data = await response.json();
+    // 1. Intentar cargar la DB desde el almacenamiento local
+    let cachedDB = localStorage.getItem('mi_app_db_cache');
 
-            if (data.error) {
-                if (mostrarAlerta) alert(data.error);
-                document.getElementById('dbStatusMsg').innerText = "Error reportado por Sheets.";
-                return;
-            }
-
-            dbData = data.map(item => ({
-                nombre: item.nombre || item.A || "",
-                desc1: item.desc1 || item.B || "",
-                lat: parseFloat(item.lat || item.D),
-                lon: parseFloat(item.lon || item.E),
-                desc2: item.desc2 || item.U || "",
-                desc3: item.desc3 || item.Y || ""
-            })).filter(item => item.nombre && !isNaN(item.lat) && !isNaN(item.lon));
-
-            localStorage.setItem('app_db_data', JSON.stringify(dbData));
-            document.getElementById('dbStatusMsg').innerText = `Sincronizada con éxito (${dbData.length} registros)`;
-            
-            if (mostrarAlerta) alert(`¡Base de datos sincronizada correctamente! (${dbData.length} registros cargados).`);
-        } catch (error) {
-            console.error("Error al conectar con Google Sheets:", error);
-            document.getElementById('dbStatusMsg').innerText = "Sin conexión (Usando caché local si existe)";
-            if (mostrarAlerta) alert("No se pudo conectar con Google Sheets. Verifica tu conexión o la URL.");
-        }
+    if (cachedDB) {
+        dbData = JSON.parse(cachedDB);
+        console.log("Datos cargados desde caché local");
+    } else {
+        // 2. Si no hay nada, descargarla (esto solo ocurre la primera vez)
+        await descargarDatosDesdeServidor();
     }
 
-    function buscarEnDB(nombrePunto) {
-        let match = dbData.find(item => item.nombre.toLowerCase().trim() === nombrePunto.toLowerCase().trim());
-        return match || null;
-    }
+    // 3. Siempre buscar la Bitácora (para ver procesos recientes)
+    await cargarBitacora();
+
+    document.getElementById('loader').style.display = 'none';
+}
+
+// Función para forzar la actualización (el botón que agregarás)
+async function descargarDatosDesdeServidor() {
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('loader').innerText = "Sincronizando con Google Sheets... ⏳";
+    
+    let res = await fetch(WEBAPP_URL);
+    let data = await res.json();
+    
+    // Guardar DB en caché
+    dbData = data.db;
+    localStorage.setItem('mi_app_db_cache', JSON.stringify(dbData));
+    
+    document.getElementById('loader').style.display = 'none';
+    alert("Datos actualizados desde Google Sheets.");
+}
+
+async function cargarBitacora() {
+    // Aquí puedes hacer un fetch específico si quieres separar la Bitácora
+    // Por ahora, usamos el mismo endpoint pero sabemos que es rápido
+    let res = await fetch(WEBAPP_URL);
+    let data = await res.json();
+    procesosGuardados = data.procesos;
+    actualizarSelectProcesos();
+}
 
     // --- PREVISUALIZACIÓN / EXTRACCIÓN DE DB ANTES DE GENERAR ---
     function previsualizarExtraccionDB(modulo) {
