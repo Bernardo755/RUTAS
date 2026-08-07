@@ -519,107 +519,73 @@ function cambiarPestana(tipo) {
     
 // --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
 async function procesarRutaMasivaPuntoAPunto() {
-    document.getElementById('s_errorMsg').style.display = 'none';
-    document.getElementById('s_resultados').style.display = 'none';
-    document.getElementById('s_loader').style.display = 'block';
+  document.getElementById('s_errorMsg').style.display = 'none';
+        document.getElementById('s_resultados').style.display = 'none';
+        document.getElementById('s_loader').style.display = 'block';
 
-    const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
-    const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
-    if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); return; }
+        const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
+        const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
+        if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); return; }
 
-    let destinos = [];
-    document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
-        let p = l.split(/,|\t/).map(x => x.trim());
-        if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
-    });
-
-    let promesas = destinos.map(d => fetch(`https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`).then(r => r.json()).then(data => ({ d, data })));
-
-    try {
-        let resultados = await Promise.all(promesas);
-        let tbody = document.getElementById('s_tablaBody'); tbody.innerHTML = '';
-        let tDist = 0, tTime = 0, validosGuardar = [];
-
-        if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
-        routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
-        markersSingle.forEach(m => mapSingle.removeLayer(m)); markersSingle = [];
-        let bounds = [[oLat, oLon]];
-        markersSingle.push(L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>ORIGEN</b>`));
-
-        resultados.forEach((item, idx) => {
-            if(item.data.code === 'Ok') {
-                let r = item.data.routes[0].legs[0];
-                let d = item.d;
-                let km = r.distance/1000, mn = r.duration/60;
-                tDist += km; tTime += mn;
-                
-                // 🟢 1. Se genera la URL individual de Google Maps (Origen a Destino)
-                let linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
-
-                // 🟢 2. Se agrega la columna "Ver Mapa" a cada fila de la tabla
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${idx+1}</td>
-                        <td><strong>${d.nombre}</strong></td>
-                        <td>${d.lat}</td>
-                        <td>${d.lon}</td>
-                        <td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td>
-                        <td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td>
-                        <td>
-                            <a href="${linkIndividualMaps}" target="_blank" class="btn btn-sm btn-outline-primary" style="text-decoration:none; font-size:12px;">
-                                🗺️ Abrir Mapa
-                            </a>
-                        </td>
-                    </tr>`;
-                
-                validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
-                bounds.push([d.lat, d.lon]);
-                markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
-                let poly = L.polyline(item.data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
-                routeLayerSingle.push(poly);
-                
-                tempDatosGuardar.push({
-                    modoApp: 'EscxEsc',
-                    resumen: `Destino: ${item.d.nombre} | Distancia: ${km} km`,
-                    linkRuta: linkIndividualMaps,
-                    datos: { destino: item.d.nombre, lat: item.d.lat, lon: item.d.lon, distancia: km }
-                });
-            }
+        let destinos = [];
+        document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
+            let p = l.split(/,|\t/).map(x => x.trim());
+            if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
         });
 
-        renderizarBotonGuardar('s');
+        let promesas = destinos.map(d => fetch(`https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`).then(r => r.json()).then(data => ({ d, data })));
 
-    } catch(e) {
-        mostrarError('s', "Error al procesar las rutas masivas.");
-    } finally { 
-        document.getElementById('s_loader').style.display = 'none'; 
-    }
-                 });
+        try {
+            let resultados = await Promise.all(promesas);
+            let tbody = document.getElementById('s_tablaBody'); tbody.innerHTML = '';
+            let tDist = 0, tTime = 0, validosGuardar = [];
+
+            if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
+            routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
+            markersSingle.forEach(m => mapSingle.removeLayer(m)); markersSingle = [];
+            let bounds = [[oLat, oLon]];
+            markersSingle.push(L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>ORIGEN</b>`));
+
+            resultados.forEach((item, idx) => {
+                if(item.data.code === 'Ok') {
+                    let r = item.data.routes[0].legs[0];
+                    let d = item.d;
+                    let km = r.distance/1000, mn = r.duration/60;
+                    tDist += km; tTime += mn;
+                    
+                    tbody.innerHTML += `<tr><td>${idx+1}</td><td><strong>${d.nombre}</strong></td><td>${d.lat}</td><td>${d.lon}</td><td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td></tr>`;
+                    
+                    validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
+                    bounds.push([d.lat, d.lon]);
+                    markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
+                    let poly = L.polyline(item.data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
+                    routeLayerSingle.push(poly);
+                }
+            });
+
+            mapSingle.fitBounds(bounds, { padding: [30, 30] });
+            let sumaKm = tDist.toFixed(2);
+            document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
+
+            // Para múltiples destinos origen-a-punto, enlazamos al punto origen en Google Maps
+            let linkMaps = `https://www.google.com/maps/search/?api=1&query=${oLat},${oLon}`;
+            document.getElementById('s_contenedorLinks').innerHTML = `<a href="${linkMaps}" target="_blank" class="btn-link">🗺️ Ver Ubicación de Origen en Maps</a>`;
+
+            document.getElementById('s_resultados').style.display = 'block';
+
+            tempDatosGuardar = { 
+                modoApp: 'Múltiples Destinos', 
+                resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km`,
+                linkRuta: linkMaps,
+                datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | ') } 
+            };
+            renderizarBotonGuardar('s');
+
+        } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
+        finally { document.getElementById('s_loader').style.display = 'none'; }
+    } 
 
 
-
-        
-
-        mapSingle.fitBounds(bounds, { padding: [30, 30] });
-        let sumaKm = tDist.toFixed(2);
-        document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
-
-        // 🟢 3. Se limpia el contenedor de enlaces general (ya que ahora están en la tabla)
-        document.getElementById('s_contenedorLinks').innerHTML = '';
-
-        document.getElementById('s_resultados').style.display = 'block';
-
-        tempDatosGuardar = { 
-            modoApp: 'Múltiples Destinos', 
-            resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km`,
-            linkRuta: 'Ver enlaces individuales en la tabla',
-            datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | ') } 
-        };
-        renderizarBotonGuardar('s');
-
-    } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
-    finally { document.getElementById('s_loader').style.display = 'none'; }
-}
 
     function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
