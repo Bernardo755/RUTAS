@@ -412,9 +412,7 @@
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
         document.getElementById(`tab-${tipo}`).classList.add('active');
-        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
-        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
-        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
+
 // 🟢 REPARACIÓN DE VISORES:
     // Esperamos un breve instante (100ms) para que el CSS cambie la visibilidad de display:none a block
     setTimeout(() => {
@@ -425,6 +423,12 @@
             mapMulti.invalidateSize();
         }
     }, 100);
+
+        
+        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
+        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
+        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
+
 }
 
 
