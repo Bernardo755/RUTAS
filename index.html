@@ -315,91 +315,75 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // URL FIJA DE GOOGLE APPS SCRIPT PRECONFIGURADA
-    const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzVMjkcEHNFb24kkQlJZWoISJA45EE8Ik_72GggqSyTM88EdxTPpeYGvyM8btiAt69_/exec";
+ const SHEETS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwF2nuob5mGYv3WcatS7ip2HkQjVwZcz4a85wB6OmUVn_PHe-lNqjrxgEbrAfP_mnfg/exec"; // Asegúrate de actualizar esto
+    
+    let dbData = [];
+    let savedProcesses = []; // Se llenará desde la hoja BITACORA
+    let currentProcess = null;
 
-    let mapMulti = null, mapSingle = null, mapKml = null;
-    let routeLayerMulti = null, markersMulti = [];
-    let routeLayerSingle = [], markersSingle = [];
-    let markersKml = [];
-    let currentLayers = { multi: null, single: null, kml: null };
+    // --- CARGA INICIAL DESDE BACKEND ---
+    async function inicializarApp() {
+        document.getElementById('dbStatusMsg').innerText = "Conectando con Google Sheets... ⏳";
+        try {
+            let response = await fetch(SHEETS_WEBAPP_URL);
+            let data = await response.json();
 
-    let dbData = JSON.parse(localStorage.getItem('app_db_data')) || [];
-    let savedProcesses = JSON.parse(localStorage.getItem('app_saved_processes')) || [];
-    let currentProcess = JSON.parse(localStorage.getItem('app_current_process')) || null;
+            // Procesar DB (para rutas)
+            dbData = data.db.map(row => ({
+                nombre: row[0], desc1: row[1], lat: parseFloat(row[3]), lon: parseFloat(row[4]), desc2: row[20], desc3: row[24]
+            }));
 
-    document.addEventListener("DOMContentLoaded", () => {
-        if (dbData.length > 0) {
-            document.getElementById('dbStatusMsg').innerText = `Sincronizada (${dbData.length} registros en caché)`;
-        } else {
-            sincronizarDesdeSheets(false);
+            // Procesar Bitácora (para procesos)
+            savedProcesses = data.procesos.map(row => ({
+                nombre: row[0], usuarios: row[1], fecha: row[2]
+            }));
+
+            document.getElementById('dbStatusMsg').innerText = "Sincronizado ✅";
+            actualizarSelectProcesos();
+        } catch (e) {
+            alert("Error al conectar con la hoja: " + e);
         }
-        actualizarSelectProcesos();
-        verificarEstadoProceso();
-    });
+    }
 
-    // --- GESTIÓN DE PROCESOS (PANEL DE CONTROL) ---
+    // --- CREAR PROCESO EN HOJA BITACORA ---
+    async function crearNuevoProceso() {
+        let nombre = document.getElementById('nuevoProcesoNombre').value.trim();
+        let usuarios = document.getElementById('nuevoProcesoUsuarios').value.trim();
+        
+        if (!nombre) return alert("Ingresa un nombre.");
+
+        let nuevoProc = { nombre, usuarios: usuarios || "General" };
+
+        // Enviar a Google Sheets
+        await fetch(SHEETS_WEBAPP_URL, {
+            method: 'POST',
+            body: JSON.stringify(nuevoProc)
+        });
+
+        alert("Proceso guardado en BITACORA.");
+        currentProcess = nuevoProc;
+        inicializarApp(); // Recargar datos
+        cambiarPestana('multi');
+    }
+
     function actualizarSelectProcesos() {
         let select = document.getElementById('selectProcesoExistente');
-        select.innerHTML = '<option value="">-- Selecciona un proceso guardado --</option>';
+        select.innerHTML = '<option value="">-- Selecciona de la Bitácora --</option>';
         savedProcesses.forEach((p, idx) => {
             select.innerHTML += `<option value="${idx}">${p.nombre}</option>`;
         });
-
-        select.onchange = function() {
-            let idx = this.value;
-            let infoInput = document.getElementById('infoProcesoExistente');
-            if (idx === "") {
-                infoInput.value = "";
-            } else {
-                let proc = savedProcesses[idx];
-                infoInput.value = `Usuarios / Etiquetas: ${proc.usuarios}`;
-            }
-        };
-    }
-
-    function crearNuevoProceso() {
-        let nombre = document.getElementById('nuevoProcesoNombre').value.trim();
-        let usuarios = document.getElementById('nuevoProcesoUsuarios').value.trim();
-        let errorDiv = document.getElementById('controlErrorMsg');
-
-        if (!nombre) {
-            errorDiv.innerText = "Debes ingresar un nombre para el proceso.";
-            errorDiv.style.display = 'block';
-            return;
-        }
-        errorDiv.style.display = 'none';
-
-        currentProcess = { nombre, usuarios: usuarios || "General", creado: new Date().toLocaleString() };
-        savedProcesses.push(currentProcess);
-        localStorage.setItem('app_saved_processes', JSON.stringify(savedProcesses));
-        localStorage.setItem('app_current_process', JSON.stringify(currentProcess));
-
-        actualizarSelectProcesos();
-        verificarEstadoProceso();
-        alert(`¡Proceso "${nombre}" creado exitosamente! Se han desbloqueado las pestañas de rutas.`);
-        cambiarPestana('multi');
     }
 
     function cargarProcesoExistente() {
-        let select = document.getElementById('selectProcesoExistente');
-        let idx = select.value;
-        let errorDiv = document.getElementById('controlErrorMsg');
-
-        if (idx === "") {
-            errorDiv.innerText = "Selecciona un proceso existente de la lista.";
-            errorDiv.style.display = 'block';
-            return;
-        }
-        errorDiv.style.display = 'none';
-
+        let idx = document.getElementById('selectProcesoExistente').value;
+        if (idx === "") return;
         currentProcess = savedProcesses[idx];
-        localStorage.setItem('app_current_process', JSON.stringify(currentProcess));
-
+        alert("Proceso cargado desde Bitácora.");
         verificarEstadoProceso();
-        alert(`¡Proceso "${currentProcess.nombre}" cargado correctamente!`);
         cambiarPestana('multi');
     }
+
+    // ... (El resto de funciones se mantiene igual, llamando a currentProcess.nombre) ...
 
     function cerrarProcesoActual() {
         if (confirm("¿Estás seguro de cerrar el proceso actual? Las pestañas de rutas se bloquearán de nuevo.")) {
