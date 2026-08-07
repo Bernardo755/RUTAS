@@ -3,135 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Avanzado de Rutas, Distancias y Bitácora</title>
-    <!-- Leaflet CSS -->
+    <title>Gestor Avanzado con Bitácora y DB Sheets</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; --success: #34a853; }
+        :root { --primary: #1a73e8; --hover: #1557b0; --bg: #f1f3f4; --surface: #ffffff; --border: #dadce0; --text: #202124; --success: #137333; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1050px; width: 100%; }
-        
-        /* Panel Modo Inicial */
-        .panel-inicial { background: #e8f0fe; border: 2px solid var(--primary); padding: 20px; border-radius: 10px; margin-bottom: 25px; }
-        .panel-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: var(--primary); }
-        .options-group { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; }
-        .option-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex: 1; min-width: 200px; cursor: pointer; transition: 0.2s; }
-        .option-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .option-card input { margin-right: 8px; }
+        .container { background: var(--surface); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 1100px; width: 100%; }
 
-        .sub-panel { background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-top: 15px; display: none; }
-        
+        /* Banner WebApp URL Config */
+        .config-box { background: #fff3cd; border: 1px solid #ffe8a1; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .config-box input { flex: 1; margin: 0; }
+
+        /* Panel Principal de Control */
+        .panel-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .option-card { border: 2px solid var(--border); padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; background: #f8f9fa; }
+        .option-card:hover, .option-card.active { border-color: var(--primary); background: #e8f0fe; }
+        .option-card h3 { margin: 0 0 8px 0; color: var(--primary); }
+
         /* Pestañas */
         .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
-        .tab-btn { background: var(--bg); border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; color: #5f6368; }
+        .tab-btn { background: var(--bg); border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .tab-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .tab-btn.active { background: var(--primary); color: white; }
-        .tab-btn.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        h2, h3 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
         input[type="text"], textarea, select { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
         textarea { resize: vertical; font-family: monospace; white-space: pre; }
         
-        .source-selector { background: #f8f9fa; border: 1px dashed var(--primary); padding: 12px; border-radius: 6px; margin-bottom: 15px; }
-        .checkbox-group { display: flex; align-items: center; gap: 10px; background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; color: #1967d2; }
-        
+        .mode-selector { background: #e8f0fe; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #aecbfa; }
+        .mode-selector label { display: inline-flex; align-items: center; margin-right: 20px; cursor: pointer; font-weight: bold; color: #174ea6; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 10px; background: #f1f3f4; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; }
         button.action-btn { background-color: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; transition: 0.2s; margin-top: 5px; }
         button.action-btn:hover { background-color: var(--hover); }
-        button.btn-db { background-color: #f2994a; margin-bottom: 10px; }
-        button.btn-db:hover { background-color: #e0883b; }
-        button.btn-save { background-color: var(--success); margin-top: 15px; }
-        button.btn-save:hover { background-color: #2d8c45; }
+        button.save-btn { background-color: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; margin-top: 15px; }
+        button.save-btn:hover { background-color: #0f5c28; }
 
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
         .layer-selector { display: flex; align-items: center; gap: 8px; }
         .layer-selector select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; background: white; cursor: pointer; }
-        
+
         #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid var(--border); z-index: 1; }
         
-        .resultados { display: none; margin-top: 30px; }
+        .resultados { display: none; margin-top: 25px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
         th { background-color: #f8f9fa; }
-        .resumen { background: #e6f4ea; border: 1px solid #ceead6; padding: 15px; border-radius: 6px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #137333; }
-        .links-container { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .btn-link { display: inline-block; background: #34a853; color: white; padding: 10px 18px; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; }
+        .resumen { background: #e6f4ea; border: 1px solid #ceead6; padding: 15px; border-radius: 6px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: var(--success); }
+        .links-container { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .btn-link { display: inline-block; background: #34a853; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; }
         .btn-link:hover { background: #2d8c45; }
         .error { color: #d93025; font-weight: bold; margin-top: 10px; display: none; }
-        .note { font-size: 12px; color: #5f6368; margin-top: 5px; }
+        .note { font-size: 12px; color: #5f6368; margin-top: 4px; }
         .loader { display: none; text-align: center; margin-top: 15px; font-weight: bold; color: var(--primary); }
-        .badge-status { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; background: #e0e0e0; color: #333; }
+
+        .subproc-tag { display: inline-block; background: #e8f0fe; color: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 12px; margin: 2px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- PANEL PRINCIPAL DE TAREAS Y MODOS -->
-    <div class="panel-inicial">
-        <div class="panel-title">⚙️ Control Principal de Trabajo</div>
-        <div class="options-group">
-            <label class="option-card">
-                <input type="radio" name="modo_trabajo" value="nuevo" onchange="seleccionarModo('nuevo')">
-                <strong>1. Proceso Nuevo</strong>
-                <div class="note">Crea un proceso, asigna subprocesos y guarda consultas en Bitácora.</div>
-            </label>
-            <label class="option-card">
-                <input type="radio" name="modo_trabajo" value="consulta" onchange="seleccionarModo('consulta')">
-                <strong>2. Consulta de Proceso</strong>
-                <div class="note">Busca y visualiza procesos guardados previamente en Bitácora.</div>
-            </label>
-            <label class="option-card">
-                <input type="radio" name="modo_trabajo" value="sin_bitacora" onchange="seleccionarModo('sin_bitacora')">
-                <strong>3. Rutas sin Bitácora</strong>
-                <div class="note">Uso libre de mapas y distancias sin opción a guardar.</div>
-            </label>
-        </div>
-
-        <!-- Subpanel Proceso Nuevo -->
-        <div id="panel-proceso-nuevo" class="sub-panel">
-            <div class="grid">
-                <div class="form-group">
-                    <label>Nombre del Proceso Principal:</label>
-                    <input type="text" id="p_nombreProceso" placeholder="Ej. Logística Distribución Norte">
-                </div>
-                <div class="form-group">
-                    <label>Nombre del Subproceso / Etiqueta Activa:</label>
-                    <input type="text" id="p_nombreSubproceso" placeholder="Ej. Entrega Sucursales A">
-                </div>
-            </div>
-            <div class="note">Al completar estos datos, se habilitarán las pestañas para operar y guardar.</div>
-        </div>
-
-        <!-- Subpanel Consulta de Proceso -->
-        <div id="panel-consulta-proceso" class="sub-panel">
-            <div class="form-group">
-                <label>Seleccionar Proceso Guardado:</label>
-                <select id="p_selectProceso" onchange="consultarDetalleProceso()">
-                    <option value="">-- Cargar Lista de Procesos --</option>
-                </select>
-            </div>
-            <div id="p_resultadoConsulta"></div>
-        </div>
+    <!-- Configuración Web App Apps Script -->
+    <div class="config-box">
+        <label for="scriptUrlInput"><strong>URL Apps Script:</strong></label>
+        <input type="text" id="scriptUrlInput" placeholder="Pega aquí la URL Web App publicada desde Google Apps Script">
+        <button class="action-btn" style="width: auto; padding: 8px 15px;" onclick="guardarUrlScript()">Conectar</button>
     </div>
 
-    <!-- Pestañas de Navegación (Inactivas por defecto) -->
+    <!-- Pestañas de Navegación -->
     <div class="tabs">
-        <button class="tab-btn disabled" onclick="cambiarPestana('multi')">📍 Ruta Múltiple (Secuencial)</button>
-        <button class="tab-btn disabled" onclick="cambiarPestana('single')">➡️ Ruta Origen a Destinos</button>
-        <button class="tab-btn disabled" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
+        <button class="tab-btn active" id="btn-tab-panel" onclick="cambiarPestana('panel')">🎛️ Panel de Control</button>
+        <button class="tab-btn" id="btn-tab-multi" disabled onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
+        <button class="tab-btn" id="btn-tab-single" disabled onclick="cambiarPestana('single')">➡️ Origen a Destinos</button>
+        <button class="tab-btn" id="btn-tab-kml" disabled onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
+    </div>
+
+    <!-- PESTAÑA: PANEL DE CONTROL -->
+    <div id="tab-panel" class="tab-content active">
+        <h2>Panel Principal de Tareas</h2>
+        <div class="panel-options">
+            <div class="option-card" onclick="seleccionarModoPanel('nuevo')">
+                <h3>1. Proceso Nuevo</h3>
+                <p>Crea un proceso con subprocesos y guarda consultas en la Bitácora.</p>
+            </div>
+            <div class="option-card" onclick="seleccionarModoPanel('consulta')">
+                <h3>2. Consulta de Proceso</h3>
+                <p>Busca e inspecciona los procesos previamente almacenados en la Bitácora.</p>
+            </div>
+            <div class="option-card" onclick="seleccionarModoPanel('rutas_libres')">
+                <h3>3. Rutas sin Bitácora</h3>
+                <p>Utiliza los mapas y herramientas sin guardar datos en la hoja.</p>
+            </div>
+        </div>
+
+        <!-- Sección: Proceso Nuevo -->
+        <div id="panel-seccion-nuevo" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+            <h3>Crear Nuevo Proceso</h3>
+            <div class="form-group">
+                <label>Nombre del Proceso Principal:</label>
+                <input type="text" id="proc_nombre" placeholder="Ej. Logística Zona Norte 2026">
+            </div>
+            <div class="form-group">
+                <label>Subprocesos / Etiquetas (separados por coma):</label>
+                <input type="text" id="proc_subprocesos" placeholder="Ej. Ruta Matutina, Inspección, Entregas Urgentes">
+            </div>
+            <button class="action-btn" onclick="crearProcesoActivo()">Crear Proceso y Habilitar Herramientas</button>
+        </div>
+
+        <!-- Sección: Consulta de Procesos -->
+        <div id="panel-seccion-consulta" style="display: none; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+            <h3>Consulta de Bitácora</h3>
+            <button class="action-btn" style="margin-bottom: 15px;" onclick="cargarProcesosBitacora()">🔄 Cargar / Actualizar Lista de Procesos</button>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Proceso:</label>
+                    <select id="select_proceso" onchange="actualizarSubprocesosConsulta()"><option value="">-- Selecciona --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Subproceso:</label>
+                    <select id="select_subproceso"><option value="">-- Selecciona --</option></select>
+                </div>
+            </div>
+            <button class="action-btn" onclick="consultarDetalleBitacora()">Consultar Registros</button>
+            <div id="consulta_resultados" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- Estado del Proceso Activo -->
+        <div id="estado-proceso-activo" style="display: none; margin-top: 20px; padding: 15px; background: #e6f4ea; border-radius: 8px; color: var(--success); font-weight: bold;">
+            <span>Proceso Activo: </span><span id="txt-proceso-activo"></span>
+            <div id="container-tags-subprocesos" style="margin-top: 5px;"></div>
+        </div>
     </div>
 
     <!-- MODO 1: RUTA MÚLTIPLE -->
     <div id="tab-multi" class="tab-content">
         <h2>Generador de Rutas Múltiples (Secuencial)</h2>
         
-        <div class="source-selector">
-            <label><strong>Origen de Datos para Puntos:</strong></label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="m_origen_datos" value="manual" checked onchange="alternarModoDatos('m')"> Manual (Lat, Lon, Nombre)</label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="m_origen_datos" value="db" onchange="alternarModoDatos('m')"> Buscar en Base de Datos (db)</label>
+        <div class="mode-selector">
+            <label><input type="radio" name="m_origen_mode" value="manual" checked onchange="toggleModoDB('m')"> Ingreso Manual</label>
+            <label><input type="radio" name="m_origen_mode" value="db" onchange="toggleModoDB('m')"> Buscar en Base de Datos (Sheet DB)</label>
         </div>
 
         <h3>1. Punto de Partida</h3>
@@ -146,12 +161,10 @@
 
         <h3>2. Puntos a Visitar</h3>
         <div class="form-group">
-            <label id="m_lblWaypoints">Formato Manual: Latitud, Longitud, Nombre</label>
-            <div class="note" id="m_noteWaypoints">Ejemplo: 19.428, -99.127, Escuela Primaria Juárez</div>
+            <label id="m_lbl_waypoints">Formato: Latitud, Longitud, Nombre del Punto</label>
+            <div class="note" id="m_note_waypoints">Ejemplo: 19.428,-99.127, Escuela Primaria Juárez</div>
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
-
-        <button id="m_btnBuscarDB" class="action-btn btn-db" style="display:none;" onclick="buscarCargarDB('m')">🔍 Buscar y Cargar desde Hoja DB</button>
 
         <div class="checkbox-group">
             <input type="checkbox" id="m_regreso" style="width: 20px; height: 20px; cursor: pointer;">
@@ -159,7 +172,7 @@
         </div>
 
         <button class="action-btn" onclick="procesarRutaMultiple()">Procesar Ruta Múltiple</button>
-        <div id="m_loader" class="loader">Calculando ruta y consultando información... ⏳</div>
+        <div id="m_loader" class="loader">Procesando datos y calculando ruta... ⏳</div>
         <div id="m_errorMsg" class="error"></div>
 
         <div id="m_resultados" class="resultados">
@@ -183,23 +196,24 @@
                 <tbody id="m_tablaBody"></tbody>
             </table>
             <div class="resumen" id="m_totalDistancia"></div>
+            <h3>Enlaces para Google Maps</h3>
             <div id="m_contenedorLinks" class="links-container"></div>
             
-            <!-- Botón Guardar en Bitácora -->
-            <button id="m_btnGuardarBitacora" class="action-btn btn-save" style="display:none;" onclick="guardarDatosEnBitacora('Ruta Múltiple', 'm')">💾 Guardar Subproceso en Bitácora</button>
+            <div id="m_contenedorGuardar" style="display:none;">
+                <button class="save-btn" onclick="guardarEnBitacora('Ruta Múltiple', datosUltimaRutaMulti)">💾 Guardar Resultados en Bitácora</button>
+            </div>
         </div>
     </div>
 
     <!-- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS -->
     <div id="tab-single" class="tab-content">
         <h2>Rutas Individuales desde Origen a Varios Destinos</h2>
-
-        <div class="source-selector">
-            <label><strong>Origen de Datos para Destinos:</strong></label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="s_origen_datos" value="manual" checked onchange="alternarModoDatos('s')"> Manual (Lat, Lon, Nombre)</label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="s_origen_datos" value="db" onchange="alternarModoDatos('s')"> Buscar en Base de Datos (db)</label>
-        </div>
         
+        <div class="mode-selector">
+            <label><input type="radio" name="s_origen_mode" value="manual" checked onchange="toggleModoDB('s')"> Ingreso Manual</label>
+            <label><input type="radio" name="s_origen_mode" value="db" onchange="toggleModoDB('s')"> Buscar en Base de Datos (Sheet DB)</label>
+        </div>
+
         <h3>1. Punto de Partida (Fijo)</h3>
         <div class="grid">
             <div class="form-group"><label>Latitud Salida:</label><input type="text" id="s_origenLat" placeholder="Ej. 19.4326"></div>
@@ -212,15 +226,13 @@
 
         <h3>2. Destinos</h3>
         <div class="form-group">
-            <label id="s_lblDestinos">Formato Manual: Latitud, Longitud, Nombre</label>
-            <div class="note" id="s_noteDestinos">Ejemplo: 19.5012, -99.1823, Sucursal Norte</div>
+            <label id="s_lbl_destinos">Pega tus destinos (Latitud, Longitud, Nombre):</label>
+            <div class="note" id="s_note_destinos">Ejemplo: 19.5012, -99.1823, Sucursal Norte</div>
             <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte&#10;19.3821, -99.0912, Sucursal Sur"></textarea>
         </div>
 
-        <button id="s_btnBuscarDB" class="action-btn btn-db" style="display:none;" onclick="buscarCargarDB('s')">🔍 Buscar y Cargar desde Hoja DB</button>
-
         <button class="action-btn" onclick="procesarRutaMasivaPuntoAPunto()">Calcular Distancias Individuales</button>
-        <div id="s_loader" class="loader">Calculando rutas independientes... ⏳</div>
+        <div id="s_loader" class="loader">Procesando datos e itinerarios... ⏳</div>
         <div id="s_errorMsg" class="error"></div>
 
         <div id="s_resultados" class="resultados">
@@ -244,32 +256,30 @@
                 <tbody id="s_tablaBody"></tbody>
             </table>
             <div class="resumen" id="s_totalDistancia"></div>
-            
-            <!-- Botón Guardar en Bitácora -->
-            <button id="s_btnGuardarBitacora" class="action-btn btn-save" style="display:none;" onclick="guardarDatosEnBitacora('Ruta Origen a Destinos', 's')">💾 Guardar Subproceso en Bitácora</button>
+
+            <div id="s_contenedorGuardar" style="display:none;">
+                <button class="save-btn" onclick="guardarEnBitacora('Rutas Individuales', datosUltimaRutaSingle)">💾 Guardar Resultados en Bitácora</button>
+            </div>
         </div>
     </div>
 
     <!-- MODO 3: MAPA KML -->
     <div id="tab-kml" class="tab-content">
-        <h2>Generador y Visualizador KML</h2>
-
-        <div class="source-selector">
-            <label><strong>Origen de Datos para Puntos KML:</strong></label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="k_origen_datos" value="manual" checked onchange="alternarModoDatos('k')"> Manual (Lat, Lon, Nombre, Desc1, Desc2, Desc3, Color)</label>
-            <label style="display:inline; margin-left:15px;"><input type="radio" name="k_origen_datos" value="db" onchange="alternarModoDatos('k')"> Buscar en Base de Datos (db)</label>
+        <h2>Generador y Visualizador de Puntos KML</h2>
+        
+        <div class="mode-selector">
+            <label><input type="radio" name="k_origen_mode" value="manual" checked onchange="toggleModoDB('k')"> Ingreso Manual</label>
+            <label><input type="radio" name="k_origen_mode" value="db" onchange="toggleModoDB('k')"> Buscar en Base de Datos (Sheet DB)</label>
         </div>
 
         <div class="form-group">
-            <label id="k_lblDatos">Formato Manual: Lat, Lon, Nombre, Desc 1, Desc 2, Desc 3, Color</label>
-            <div class="note" id="k_noteDatos">Colores aceptados: red, blue, green, #ff5733, orange.</div>
-            <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red"></textarea>
+            <label id="k_lbl_datos">Puntos (Latitud, Longitud, Nombre, Desc 1, Desc 2, Desc 3, Color)</label>
+            <div class="note" id="k_note_datos">Colores aceptados: red, blue, green, #ff5733, orange, etc.</div>
+            <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red&#10;19.4512, -99.1523, Biblioteca Sur, Zona Sur, Encargada Maria, Vespertino, blue"></textarea>
         </div>
 
-        <button id="k_btnBuscarDB" class="action-btn btn-db" style="display:none;" onclick="buscarCargarDB('k')">🔍 Buscar y Cargar desde Hoja DB</button>
-
         <button class="action-btn" onclick="procesarKML()">Generar KML y Ver en Mapa</button>
-        <div id="k_loader" class="loader">Procesando puntos KML... ⏳</div>
+        <div id="k_loader" class="loader">Consultando base de datos y preparando KML... ⏳</div>
         <div id="k_errorMsg" class="error"></div>
 
         <div id="k_resultados" class="resultados">
@@ -285,10 +295,10 @@
                 </div>
             </div>
             <div id="mapKml"></div>
-            <h3>Detalle de Puntos</h3>
+            <h3>Detalle de Puntos Procesados</h3>
             <table>
                 <thead>
-                    <tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Desc 1</th><th>Desc 2</th><th>Desc 3</th><th>Color</th></tr>
+                    <tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Descripción 1</th><th>Descripción 2</th><th>Descripción 3</th><th>Color</th></tr>
                 </thead>
                 <tbody id="k_tablaBody"></tbody>
             </table>
@@ -296,227 +306,149 @@
                 <a id="k_btnDescarga" class="btn-link" href="#" download="puntos_personalizados.kml">📥 Descargar Archivo KML</a>
             </div>
 
-            <!-- Botón Guardar en Bitácora -->
-            <button id="k_btnGuardarBitacora" class="action-btn btn-save" style="display:none;" onclick="guardarDatosEnBitacora('Puntos KML', 'k')">💾 Guardar Subproceso en Bitácora</button>
+            <div id="k_contenedorGuardar" style="display:none;">
+                <button class="save-btn" onclick="guardarEnBitacora('Mapa KML', datosUltimoKML)">💾 Guardar Resultados en Bitácora</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    let SCRIPT_URL = localStorage.getItem('https://script.google.com/macros/s/AKfycbzcsqEw4wcrnatAYZ6e3zLhrminWObk0s191502_Cm1jfaatbYdbw1oEPely1kk4xYs/exec') || "";
+    if(SCRIPT_URL) document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+
+    function guardarUrlScript() {
+        const url = document.getElementById('scriptUrlInput').value.trim();
+        if(!url) return alert("Ingresa una URL válida de Google Apps Script.");
+        SCRIPT_URL = url;
+        localStorage.setItem('script_url_bitacora', url);
+        alert("URL guardada correctamente.");
+    }
+
+    // Estado del Sistema y Procesos
+    let modoTrabajo = null; // 'nuevo', 'consulta', 'rutas_libres'
+    let procesoActivo = { nombre: '', subprocesos: [] };
+    let listaProcesosBitacora = [];
+
+    // Variables de Mapas
     let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
     let markersKml = [];
     let currentLayers = { multi: null, single: null, kml: null };
 
-    // Estado global de la aplicación
-    let modoActual = null; // 'nuevo', 'consulta', 'sin_bitacora'
-    let resumenUltimoCalculo = { distancia: '-', tiempo: '-', detalle: '' };
+    // Datos temporales para guardar en Bitácora
+    let datosUltimaRutaMulti = null;
+    let datosUltimaRutaSingle = null;
+    let datosUltimoKML = null;
 
-    function seleccionarModo(modo) {
-        modoActual = modo;
-        const subNuevo = document.getElementById('panel-proceso-nuevo');
-        const subConsulta = document.getElementById('panel-consulta-proceso');
-        const btnsPestana = document.querySelectorAll('.tab-btn');
-        const btnsGuardar = document.querySelectorAll('.btn-save');
-
-        subNuevo.style.display = 'none';
-        subConsulta.style.display = 'none';
-
-        if (modo === 'nuevo') {
-            subNuevo.style.display = 'block';
-            desbloquearPestanas(true);
-            btnsGuardar.forEach(b => b.style.display = 'block');
+    // --- MANEJO DEL PANEL Y ESTADOS ---
+    function seleccionarModoPanel(modo) {
+        modoTrabajo = modo;
+        document.getElementById('panel-seccion-nuevo').style.display = (modo === 'nuevo') ? 'block' : 'none';
+        document.getElementById('panel-seccion-consulta').style.display = (modo === 'consulta') ? 'block' : 'none';
+        
+        if (modo === 'rutas_libres') {
+            desbloquearPestañas(true);
+            document.getElementById('m_contenedorGuardar').style.display = 'none';
+            document.getElementById('s_contenedorGuardar').style.display = 'none';
+            document.getElementById('k_contenedorGuardar').style.display = 'none';
+            document.getElementById('estado-proceso-activo').style.display = 'none';
+            alert("Modo Rutas Libres activo: Las pestañas de mapas están desbloqueadas.");
         } else if (modo === 'consulta') {
-            subConsulta.style.display = 'block';
-            desbloquearPestanas(false);
-            cargarListaProcesos();
-        } else if (modo === 'sin_bitacora') {
-            desbloquearPestanas(true);
-            btnsGuardar.forEach(b => b.style.display = 'none');
+            desbloquearPestañas(false);
+            cargarProcesosBitacora();
+        } else {
+            desbloquearPestañas(false);
         }
     }
 
-    function desbloquearPestanas(habilitar) {
-        const btns = document.querySelectorAll('.tab-btn');
-        btns.forEach(b => {
-            if (habilitar) b.classList.remove('disabled');
-            else b.classList.add('disabled');
-        });
-        if (habilitar) cambiarPestana('multi');
+    function crearProcesoActivo() {
+        const nom = document.getElementById('proc_nombre').value.trim();
+        const subsStr = document.getElementById('proc_subprocesos').value.trim();
+
+        if (!nom) return alert("Ingresa el nombre del proceso.");
+        
+        procesoActivo.nombre = nom;
+        procesoActivo.subprocesos = subsStr ? subsStr.split(',').map(s => s.trim()).filter(Boolean) : ['General'];
+
+        document.getElementById('txt-proceso-activo').innerText = procesoActivo.nombre;
+        const tagsContainer = document.getElementById('container-tags-subprocesos');
+        tagsContainer.innerHTML = 'Subprocesos: ' + procesoActivo.subprocesos.map(s => `<span class="subproc-tag">${s}</span>`).join('');
+        document.getElementById('estado-proceso-activo').style.display = 'block';
+
+        desbloquearPestañas(true);
+        document.getElementById('m_contenedorGuardar').style.display = 'block';
+        document.getElementById('s_contenedorGuardar').style.display = 'block';
+        document.getElementById('k_contenedorGuardar').style.display = 'block';
+
+        alert(`Proceso "${nom}" creado exitosamente. Ya puedes utilizar las herramientas.`);
     }
 
-    function alternarModoDatos(prefix) {
-        const esDB = document.querySelector(`input[name="${prefix}_origen_datos"][value="db"]`).checked;
-        const btnDB = document.getElementById(`${prefix}_btnBuscarDB`);
-        const textArea = document.getElementById(prefix === 'm' ? 'm_waypoints' : (prefix === 's' ? 's_destinos' : 'k_datos'));
-        const lbl = document.getElementById(prefix === 'm' ? 'm_lblWaypoints' : (prefix === 's' ? 's_lblDestinos' : 'k_lblDatos'));
-        const note = document.getElementById(prefix === 'm' ? 'm_noteWaypoints' : (prefix === 's' ? 's_noteDestinos' : 'k_noteDatos'));
+    function desbloquearPestañas(habilitar) {
+        document.getElementById('btn-tab-multi').disabled = !habilitar;
+        document.getElementById('btn-tab-single').disabled = !habilitar;
+        document.getElementById('btn-tab-kml').disabled = !habilitar;
+    }
 
-        if (esDB) {
-            btnDB.style.display = 'block';
-            lbl.innerText = 'Escribe las Claves / IDs a buscar en la hoja DB (uno por línea):';
-            note.innerText = 'Ejemplo: ID_001\nID_002';
-            textArea.placeholder = 'ID_001\nID_002\nID_003';
+    function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        document.getElementById(`btn-tab-${tipo}`).classList.add('active');
+        document.getElementById(`tab-${tipo}`).classList.add('active');
+
+        if (tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
+        if (tipo === 'single' && mapSingle) mapSingle.invalidateSize();
+        if (tipo === 'kml' && mapKml) mapKml.invalidateSize();
+    }
+
+    // --- CAMBIO DE MODO DE INGRESO (MANUAL VS SHEET DB) ---
+    function toggleModoDB(prefix) {
+        const isDB = document.querySelector(`input[name="${prefix}_origen_mode"]:checked`).value === 'db';
+        const lbl = document.getElementById(`${prefix}_lbl_${prefix === 'm' ? 'waypoints' : (prefix === 's' ? 'destinos' : 'datos')}`);
+        const note = document.getElementById(`${prefix}_note_${prefix === 'm' ? 'waypoints' : (prefix === 's' ? 'destinos' : 'datos')}`);
+        const txt = document.getElementById(`${prefix}_${prefix === 'm' ? 'waypoints' : (prefix === 's' ? 'destinos' : 'datos')}`);
+
+        if (isDB) {
+            lbl.innerText = "Ingresa los IDs / Valores a buscar en la Columna A de la hoja DB (uno por línea):";
+            note.innerText = "El sistema extraerá automáticamente Latitud (Col D), Longitud (Col E), Nombre (Col B) y Descripciones.";
+            txt.placeholder = "ID_PUNTO_1\nID_PUNTO_2\nID_PUNTO_3";
         } else {
-            btnDB.style.display = 'none';
-            if (prefix === 'm' || prefix === 's') {
-                lbl.innerText = 'Formato Manual: Latitud, Longitud, Nombre';
-                note.innerText = 'Ejemplo: 19.428, -99.127, Sucursal Norte';
-                textArea.placeholder = '19.42847,-99.12766, Sucursal Norte';
-            } else {
-                lbl.innerText = 'Formato Manual: Lat, Lon, Nombre, Desc1, Desc2, Desc3, Color';
-                note.innerText = 'Colores aceptados: red, blue, green, orange, #ff5733.';
-                textArea.placeholder = '19.4326, -99.1332, Escuela, Zona Norte, Dir Juan, Matutino, red';
+            if (prefix === 'm') {
+                lbl.innerText = "Formato: Latitud, Longitud, Nombre del Punto";
+                note.innerText = "Ejemplo: 19.428,-99.127, Escuela Primaria Juárez";
+                txt.placeholder = "19.42847,-99.12766, Primaria Benito Juarez\n19.43555,-99.14111, Secundaria Tec 45";
+            } else if (prefix === 's') {
+                lbl.innerText = "Pega tus destinos (Latitud, Longitud, Nombre):";
+                note.innerText = "Ejemplo: 19.5012, -99.1823, Sucursal Norte";
+                txt.placeholder = "19.5012, -99.1823, Sucursal Norte\n19.3821, -99.0912, Sucursal Sur";
+            } else if (prefix === 'k') {
+                lbl.innerText = "Puntos (Latitud, Longitud, Nombre, Desc 1, Desc 2, Desc 3, Color)";
+                note.innerText = "Colores aceptados: red, blue, green, #ff5733, orange, etc.";
+                txt.placeholder = "19.4326, -99.1332, Escuela Central, Zona Norte, Director Juan, Matutino, red";
             }
         }
     }
 
-    // --- INTEGRACIÓN CON HOJA DB (Google Apps Script) ---
-    function buscarCargarDB(prefix) {
-        const textArea = document.getElementById(prefix === 'm' ? 'm_waypoints' : (prefix === 's' ? 's_destinos' : 'k_datos'));
-        const lineas = textArea.value.trim().split('\n').filter(l => l.trim() !== '');
-
-        if (lineas.length === 0) {
-            mostrarError(prefix, "Ingresa al menos una clave en el campo de texto para buscar en DB.");
-            return;
-        }
-
-        const loader = document.getElementById(`${prefix}_loader`);
-        loader.style.display = 'block';
-        loader.innerText = 'Buscando datos en la hoja "db"... ⏳';
-
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(resultados) {
-                    loader.style.display = 'none';
-                    let textoResultado = '';
-
-                    resultados.forEach(res => {
-                        if (res.encontrado) {
-                            if (prefix === 'm' || prefix === 's') {
-                                textoResultado += `${res.lat}, ${res.lon}, ${res.nombre}\n`;
-                            } else {
-                                textoResultado += `${res.lat}, ${res.lon}, ${res.nombre}, ${res.desc1}, ${res.desc2}, ${res.desc3}, blue\n`;
-                            }
-                        } else {
-                            textoResultado += `# CLAVE ${res.clave} NO ENCONTRADA EN DB\n`;
-                        }
-                    });
-
-                    // Cambiar vista a manual con datos precargados de la DB
-                    document.querySelector(`input[name="${prefix}_origen_datos"][value="manual"]`).checked = true;
-                    alternarModoDatos(prefix);
-                    textArea.value = textoResultado.trim();
-                })
-                .withFailureHandler(function(err) {
-                    loader.style.display = 'none';
-                    mostrarError(prefix, "Error al consultar la DB: " + err.message);
-                })
-                .buscarEnDB(lineas);
-        } else {
-            loader.style.display = 'none';
-            alert("Modo Simulación (Sin GAS): Asegúrate de desplegar esta Web App en Google Apps Script.");
-        }
+    // --- INTEGRACIÓN CON SHEET DB ---
+    async function consultarDB(idsArray) {
+        if (!SCRIPT_URL) throw new Error("No has configurado la URL de Apps Script.");
+        const res = await fetch(`${SCRIPT_URL}?action=searchDb&ids=${encodeURIComponent(JSON.stringify(idsArray))}`);
+        const json = await res.json();
+        if (json.status !== 'success') throw new Error(json.message || "Error al consultar la hoja DB.");
+        return json.data;
     }
 
-    // --- GUARDAR EN BITÁCORA ---
-    function guardarDatosEnBitacora(tipoRuta, prefix) {
-        const proc = document.getElementById('p_nombreProceso').value.trim();
-        const subproc = document.getElementById('p_nombreSubproceso').value.trim();
-
-        if (!proc || !subproc) {
-            alert("Por favor ingresa tanto el 'Nombre del Proceso' como el 'Nombre del Subproceso' en el panel superior.");
-            return;
-        }
-
-        let origenVal = '';
-        if (prefix === 'm') origenVal = document.getElementById('m_nombreOrigen').value || `${document.getElementById('m_origenLat').value}, ${document.getElementById('m_origenLon').value}`;
-        else if (prefix === 's') origenVal = document.getElementById('s_nombreOrigen').value || `${document.getElementById('s_origenLat').value}, ${document.getElementById('s_origenLon').value}`;
-        else origenVal = 'N/A (Puntos KML)';
-
-        const payload = {
-            proceso: proc,
-            subproceso: subproc,
-            tipoRuta: tipoRuta,
-            origen: origenVal,
-            detalle: resumenUltimoCalculo.detalle,
-            distanciaTotal: resumenUltimoCalculo.distancia,
-            tiempoTotal: resumenUltimoCalculo.tiempo
-        };
-
-        const loader = document.getElementById(`${prefix}_loader`);
-        loader.style.display = 'block';
-        loader.innerText = 'Guardando en Bitácora... ⏳';
-
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(res) {
-                    loader.style.display = 'none';
-                    alert("✅ " + res.message);
-                })
-                .withFailureHandler(function(err) {
-                    loader.style.display = 'none';
-                    alert("❌ Error al guardar en Bitácora: " + err.message);
-                })
-                .guardarEnBitacora(payload);
-        } else {
-            loader.style.display = 'none';
-            alert("Modo Simulación: Datos guardados virtualmente.");
-        }
-    }
-
-    // --- CONSULTAR PROCESOS DESDE BITÁCORA ---
-    function cargarListaProcesos() {
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(lista) {
-                    const sel = document.getElementById('p_selectProceso');
-                    sel.innerHTML = '<option value="">-- Selecciona un Proceso --</option>';
-                    lista.forEach(p => {
-                        sel.innerHTML += `<option value="${p}">${p}</option>`;
-                    });
-                })
-                .obtenerListaProcesos();
-        }
-    }
-
-    function consultarDetalleProceso() {
-        const proc = document.getElementById('p_selectProceso').value;
-        const cont = document.getElementById('p_resultadoConsulta');
-        if (!proc) { cont.innerHTML = ''; return; }
-
-        cont.innerHTML = 'Cargando subprocesos e información... ⏳';
-
-        if (typeof google !== 'undefined' && google.script) {
-            google.script.run
-                .withSuccessHandler(function(registros) {
-                    if (registros.length === 0) {
-                        cont.innerHTML = '<div class="note">No se encontraron registros para este proceso.</div>';
-                        return;
-                    }
-
-                    let html = `<h4>Registros encontrados para: ${proc}</h4><table><thead><tr><th>Fecha</th><th>Subproceso</th><th>Tipo Ruta</th><th>Origen</th><th>Distancia</th><th>Tiempo</th><th>Detalle Puntos</th></tr></thead><tbody>`;
-                    registros.forEach(r => {
-                        html += `<tr><td>${r.fecha}</td><td><strong>${r.subproceso}</strong></td><td>${r.tipoRuta}</td><td>${r.origen}</td><td>${r.distancia}</td><td>${r.tiempo}</td><td style="font-size:12px; text-align:left;">${r.detalle}</td></tr>`;
-                    });
-                    html += '</tbody></table>';
-                    cont.innerHTML = html;
-                })
-                .obtenerDetalleProceso(proc);
-        }
-    }
-
-    // --- FUNCIONES Leaflet Y OSRM ---
+    // --- MAPAS TILES ---
     function obtenerCapaTile(estilo) {
         if (estilo === 'osm') {
             return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
         } else if (estilo === 'light') {
             return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; CARTO' });
         } else {
-            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' });
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' });
         }
     }
 
@@ -526,60 +458,35 @@
         let estiloSeleccionado = selectEstilo ? selectEstilo.value : 'satellite';
 
         if (claveMapa === 'multi') {
-            if (!mapMulti) {
-                mapMulti = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.multi = obtenerCapaTile(estiloSeleccionado).addTo(mapMulti);
-            } else { mapMulti.setView([lat, lon], 13); mapMulti.invalidateSize(); }
+            if (!mapMulti) { mapMulti = L.map(idContenedor).setView([lat, lon], 13); currentLayers.multi = obtenerCapaTile(estiloSeleccionado).addTo(mapMulti); }
+            else { mapMulti.setView([lat, lon], 13); mapMulti.invalidateSize(); }
             mapa = mapMulti;
         } else if (claveMapa === 'single') {
-            if (!mapSingle) {
-                mapSingle = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.single = obtenerCapaTile(estiloSeleccionado).addTo(mapSingle);
-            } else { mapSingle.setView([lat, lon], 13); mapSingle.invalidateSize(); }
+            if (!mapSingle) { mapSingle = L.map(idContenedor).setView([lat, lon], 13); currentLayers.single = obtenerCapaTile(estiloSeleccionado).addTo(mapSingle); }
+            else { mapSingle.setView([lat, lon], 13); mapSingle.invalidateSize(); }
             mapa = mapSingle;
         } else if (claveMapa === 'kml') {
-            if (!mapKml) {
-                mapKml = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.kml = obtenerCapaTile(estiloSeleccionado).addTo(mapKml);
-            } else { mapKml.setView([lat, lon], 13); mapKml.invalidateSize(); }
+            if (!mapKml) { mapKml = L.map(idContenedor).setView([lat, lon], 13); currentLayers.kml = obtenerCapaTile(estiloSeleccionado).addTo(mapKml); }
+            else { mapKml.setView([lat, lon], 13); mapKml.invalidateSize(); }
             mapa = mapKml;
         }
         return mapa;
     }
 
     function cambiarCapaMapa(claveMapa, estilo) {
-        let mapa = claveMapa === 'multi' ? mapMulti : (claveMapa === 'single' ? mapSingle : mapKml);
+        let mapa = (claveMapa === 'multi') ? mapMulti : ((claveMapa === 'single') ? mapSingle : mapKml);
         if (!mapa) return;
         if (currentLayers[claveMapa]) mapa.removeLayer(currentLayers[claveMapa]);
         currentLayers[claveMapa] = obtenerCapaTile(estilo).addTo(mapa);
     }
 
-    function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        if(tipo === 'multi') {
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('tab-multi').classList.add('active');
-            if(mapMulti) setTimeout(() => mapMulti.invalidateSize(), 200);
-        } else if(tipo === 'single') {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.getElementById('tab-single').classList.add('active');
-            if(mapSingle) setTimeout(() => mapSingle.invalidateSize(), 200);
-        } else if(tipo === 'kml') {
-            document.querySelectorAll('.tab-btn')[2].classList.add('active');
-            document.getElementById('tab-kml').classList.add('active');
-            if(mapKml) setTimeout(() => mapKml.invalidateSize(), 200);
-        }
-    }
-
     function mostrarError(prefix, msg) {
-        const err = document.getElementById(`${prefix}_errorMsg`);
-        err.innerText = msg;
-        err.style.display = 'block';
+        const errDiv = document.getElementById(`${prefix}_errorMsg`);
+        errDiv.innerText = msg;
+        errDiv.style.display = 'block';
     }
 
-    // --- PROCESAR RUTA MÚLTIPLE ---
+    // --- MODO 1: RUTA MÚLTIPLE ---
     async function procesarRutaMultiple() {
         document.getElementById('m_errorMsg').style.display = 'none';
         document.getElementById('m_resultados').style.display = 'none';
@@ -595,49 +502,53 @@
 
         if (isNaN(oLat) || isNaN(oLon)) {
             document.getElementById('m_loader').style.display = 'none';
-            mostrarError('m', "Faltan las coordenadas de origen o son incorrectas.");
-            return;
+            return mostrarError('m', "Faltan las coordenadas de origen o son incorrectas.");
         }
 
-        let puntos = [{ tipo: 'Origen', lat: oLat, lon: oLon, nombre: nomO }];
+        let puntos = [{ tipo: 'Punto de Partida', lat: oLat, lon: oLon, nombre: nomO }];
+        const esDB = document.querySelector('input[name="m_origen_mode"]:checked').value === 'db';
         const texto = document.getElementById('m_waypoints').value.trim();
-        
-        if (texto) {
-            const lineas = texto.split('\n');
-            for (let linea of lineas) {
-                if (!linea.trim() || linea.startsWith('#')) continue;
-                const partes = linea.split(/,|\t/).map(p => p.trim());
-                if (partes.length >= 2) {
-                    const lat = parseFloat(partes[0].replace(',', '.'));
-                    const lon = parseFloat(partes[1].replace(',', '.'));
-                    const nombre = partes[2] ? partes[2] : `Parada ${puntos.length}`;
-                    if (!isNaN(lat) && !isNaN(lon)) puntos.push({ lat, lon, nombre });
-                }
-            }
-        }
-
-        if (document.getElementById('m_regreso').checked && puntos.length > 1) {
-            puntos.push({ lat: oLat, lon: oLon, nombre: `Regreso a ${nomO}` });
-        }
-
-        if (puntos.length === 1) {
-            document.getElementById('m_loader').style.display = 'none';
-            mostrarError('m', "Agrega al menos una coordenada válida para visitar.");
-            return;
-        }
-
-        let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
-        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
 
         try {
-            let response = await fetch(urlOSRM);
+            if (texto) {
+                const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+                if (esDB) {
+                    const datosDB = await consultarDB(lineas);
+                    datosDB.forEach(d => {
+                        const lat = parseFloat(d.lat);
+                        const lon = parseFloat(d.lon);
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            puntos.push({ tipo: `Parada ${puntos.length}`, lat, lon, nombre: d.nombre });
+                        }
+                    });
+                } else {
+                    lineas.forEach(linea => {
+                        const partes = linea.split(/,|\t/).map(p => p.trim());
+                        if (partes.length >= 2) {
+                            const lat = parseFloat(partes[0].replace(',', '.'));
+                            const lon = parseFloat(partes[1].replace(',', '.'));
+                            const nombre = partes[2] || `Parada ${puntos.length}`;
+                            if (!isNaN(lat) && !isNaN(lon)) puntos.push({ tipo: `Parada ${puntos.length}`, lat, lon, nombre });
+                        }
+                    });
+                }
+            }
+
+            if (document.getElementById('m_regreso').checked && puntos.length > 1) {
+                puntos.push({ tipo: 'Regreso', lat: oLat, lon: oLon, nombre: `Regreso a ${nomO}` });
+            }
+
+            if (puntos.length === 1) {
+                document.getElementById('m_loader').style.display = 'none';
+                return mostrarError('m', "Agrega al menos un punto válido a visitar.");
+            }
+
+            let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
+            let response = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`);
             let data = await response.json();
             document.getElementById('m_loader').style.display = 'none';
 
-            if (data.code !== 'Ok') {
-                mostrarError('m', "No se pudo calcular la ruta con los puntos proporcionados.");
-                return;
-            }
+            if (data.code !== 'Ok') return mostrarError('m', "No se pudo calcular la ruta.");
 
             let route = data.routes[0];
             let legs = route.legs;
@@ -646,37 +557,23 @@
 
             tablaBody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].nombre}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
 
-            let resumenPuntos = [puntos[0].nombre];
             for (let i = 0; i < legs.length; i++) {
                 let leg = legs[i];
-                let distKm = (leg.distance / 1000).toFixed(2) + " km";
-                let durMin = Math.round(leg.duration / 60) + " min";
-                resumenPuntos.push(puntos[i+1].nombre);
-
                 tablaBody.innerHTML += `
                     <tr>
                         <td>${i + 1}</td>
                         <td><strong>${puntos[i+1].nombre}</strong></td>
                         <td>${puntos[i+1].lat}</td>
                         <td>${puntos[i+1].lon}</td>
-                        <td style="color: #1a73e8; font-weight: bold;">${distKm}</td>
-                        <td style="color: #e37400; font-weight: bold;">${durMin}</td>
+                        <td style="color: #1a73e8; font-weight: bold;">${(leg.distance / 1000).toFixed(2)} km</td>
+                        <td style="color: #e37400; font-weight: bold;">${Math.round(leg.duration / 60)} min</td>
                     </tr>`;
             }
 
-            // Almacenar resumen para Bitácora
-            resumenUltimoCalculo = {
-                distancia: `${distanciaTotal.toFixed(2)} km`,
-                tiempo: `${Math.round(tiempoTotalSeg / 60)} min`,
-                detalle: resumenPuntos.join(' ➔ ')
-            };
-
-            document.getElementById('m_totalDistancia').innerHTML = 
-                `Distancia Total: ${resumenUltimoCalculo.distancia} | Tiempo estimado: ${resumenUltimoCalculo.tiempo}`;
-
+            document.getElementById('m_totalDistancia').innerHTML = `Distancia Total: ${distanciaTotal.toFixed(2)} km | Tiempo estimado: ${Math.round(tiempoTotalSeg / 60)} min`;
             document.getElementById('m_resultados').style.display = 'block';
-            let mapa = inicializarMapaSiNoExiste('map', 'multi', oLat, oLon);
 
+            let mapa = inicializarMapaSiNoExiste('map', 'multi', oLat, oLon);
             if (routeLayerMulti) mapa.removeLayer(routeLayerMulti);
             markersMulti.forEach(m => mapa.removeLayer(m));
             markersMulti = [];
@@ -686,18 +583,31 @@
             mapa.fitBounds(routeLayerMulti.getBounds(), { padding: [50, 50] });
 
             puntos.forEach((p, index) => {
-                let marker = L.marker([p.lat, p.lon]).addTo(mapa)
-                    .bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
+                let marker = L.marker([p.lat, p.lon]).addTo(mapa).bindPopup(`<b>${index}. ${p.nombre}</b><br>Lat: ${p.lat}, Lon: ${p.lon}`);
                 markersMulti.push(marker);
             });
 
+            // Links Google Maps
+            let linkIndex = 1;
+            for (let i = 0; i < puntos.length - 1; i += 9) {
+                let bloque = puntos.slice(i, i + 10); 
+                let gmapsUrl = "https://www.google.com/maps/dir/" + bloque.map(p => `${p.lat},${p.lon}`).join('/');
+                let btn = document.createElement('a');
+                btn.className = 'btn-link'; btn.href = gmapsUrl; btn.target = '_blank';
+                btn.innerText = (puntos.length <= 10) ? "📍 Abrir Ruta en Google Maps" : `📍 Abrir Parte ${linkIndex} en Google Maps`;
+                linksContainer.appendChild(btn);
+                linkIndex++;
+            }
+
+            datosUltimaRutaMulti = { puntos, distanciaTotalKm: distanciaTotal.toFixed(2), tiempoTotalMin: Math.round(tiempoTotalSeg / 60) };
+
         } catch (error) {
             document.getElementById('m_loader').style.display = 'none';
-            mostrarError('m', "Error de conexión con el servicio de rutas.");
+            mostrarError('m', "Error procesando solicitud: " + error.message);
         }
     }
 
-    // --- PROCESAR RUTA MASIVA ---
+    // --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
     async function procesarRutaMasivaPuntoAPunto() {
         document.getElementById('s_errorMsg').style.display = 'none';
         document.getElementById('s_resultados').style.display = 'none';
@@ -712,65 +622,69 @@
 
         if (isNaN(oLat) || isNaN(oLon)) {
             document.getElementById('s_loader').style.display = 'none';
-            mostrarError('s', "Verifica que las coordenadas del punto de salida sean válidas.");
-            return;
+            return mostrarError('s', "Coordenadas de origen inválidas.");
         }
 
+        const esDB = document.querySelector('input[name="s_origen_mode"]:checked').value === 'db';
         const texto = document.getElementById('s_destinos').value.trim();
-        if (!texto) {
-            document.getElementById('s_loader').style.display = 'none';
-            mostrarError('s', "Agrega al menos un destino.");
-            return;
-        }
-
-        const lineas = texto.split('\n');
         let destinos = [];
-        for (let linea of lineas) {
-            if (!linea.trim() || linea.startsWith('#')) continue;
-            const partes = linea.split(/,|\t/).map(p => p.trim());
-            if (partes.length >= 2) {
-                const lat = parseFloat(partes[0].replace(',', '.'));
-                const lon = parseFloat(partes[1].replace(',', '.'));
-                const nombre = partes[2] ? partes[2] : `Destino ${destinos.length + 1}`;
-                if (!isNaN(lat) && !isNaN(lon)) destinos.push({ lat, lon, nombre });
-            }
-        }
-
-        let promesas = destinos.map(d => {
-            let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`;
-            return fetch(urlOSRM).then(res => res.json()).then(data => ({ destino: d, data }));
-        });
 
         try {
+            if (!texto) {
+                document.getElementById('s_loader').style.display = 'none';
+                return mostrarError('s', "Ingresa los destinos.");
+            }
+
+            const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+            if (esDB) {
+                const datosDB = await consultarDB(lineas);
+                datosDB.forEach(d => {
+                    const lat = parseFloat(d.lat);
+                    const lon = parseFloat(d.lon);
+                    if (!isNaN(lat) && !isNaN(lon)) destinos.push({ lat, lon, nombre: d.nombre });
+                });
+            } else {
+                lineas.forEach(linea => {
+                    const partes = linea.split(/,|\t/).map(p => p.trim());
+                    if (partes.length >= 2) {
+                        const lat = parseFloat(partes[0].replace(',', '.'));
+                        const lon = parseFloat(partes[1].replace(',', '.'));
+                        const nombre = partes[2] || `Destino ${destinos.length + 1}`;
+                        if (!isNaN(lat) && !isNaN(lon)) destinos.push({ lat, lon, nombre });
+                    }
+                });
+            }
+
+            if (destinos.length === 0) {
+                document.getElementById('s_loader').style.display = 'none';
+                return mostrarError('s', "No se encontraron destinos válidos.");
+            }
+
+            let promesas = destinos.map(d => {
+                let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`;
+                return fetch(urlOSRM).then(res => res.json()).then(data => ({ destino: d, data }));
+            });
+
             let resultadosFetch = await Promise.all(promesas);
             document.getElementById('s_loader').style.display = 'none';
 
-            let distanciaTotalGlobal = 0;
-            let tiempoTotalGlobal = 0;
-            let validos = [];
-            let detalleResumen = [];
+            let distanciaTotalGlobal = 0, tiempoTotalGlobal = 0, validos = [];
 
             resultadosFetch.forEach((item, idx) => {
-                let d = item.destino;
-                let data = item.data;
+                let d = item.destino, data = item.data;
                 if (data.code === 'Ok') {
-                    let route = data.routes[0];
-                    let leg = route.legs[0];
-                    let distKm = leg.distance / 1000;
-                    let durSeg = leg.duration;
+                    let route = data.routes[0], leg = route.legs[0];
+                    let distKm = leg.distance / 1000, durSeg = leg.duration;
 
-                    distanciaTotalGlobal += distKm;
-                    tiempoTotalGlobal += durSeg;
+                    distanciaTotalGlobal += distKm; tiempoTotalGlobal += durSeg;
                     validos.push({ ...d, distKm, durSeg, geometry: route.geometry });
-                    detalleResumen.push(`${d.nombre} (${distKm.toFixed(2)} km)`);
 
                     let gmapsUrl = `https://www.google.com/maps/dir/${oLat},${oLon}/${d.lat},${d.lon}`;
                     tablaBody.innerHTML += `
                         <tr>
                             <td>${idx + 1}</td>
                             <td><strong>${d.nombre}</strong></td>
-                            <td>${d.lat}</td>
-                            <td>${d.lon}</td>
+                            <td>${d.lat}</td><td>${d.lon}</td>
                             <td style="color: #1a73e8; font-weight: bold;">${distKm.toFixed(2)} km</td>
                             <td style="color: #e37400; font-weight: bold;">${Math.round(durSeg / 60)} min</td>
                             <td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 4px 8px; font-size: 12px;">🗺️ Abrir</a></td>
@@ -778,130 +692,224 @@
                 }
             });
 
-            resumenUltimoCalculo = {
-                distancia: `${distanciaTotalGlobal.toFixed(2)} km`,
-                tiempo: `${Math.round(tiempoTotalGlobal / 60)} min`,
-                detalle: `Origen: ${nomO} ➔ Destinos: ${detalleResumen.join(', ')}`
-            };
-
-            document.getElementById('s_totalDistancia').innerHTML = 
-                `Suma Total Distancias: ${resumenUltimoCalculo.distancia} | Tiempo Acumulado: ${resumenUltimoCalculo.tiempo}`;
-
+            document.getElementById('s_totalDistancia').innerHTML = `Suma Total: ${distanciaTotalGlobal.toFixed(2)} km | Tiempo estimado acumulado: ${Math.round(tiempoTotalGlobal / 60)} min`;
             document.getElementById('s_resultados').style.display = 'block';
-            let mapa = inicializarMapaSiNoExiste('mapSingle', 'single', oLat, oLon);
 
-            if (routeLayerSingle.length > 0) routeLayerSingle.forEach(l => mapa.removeLayer(l));
-            routeLayerSingle = [];
-            markersSingle.forEach(m => mapa.removeLayer(m));
-            markersSingle = [];
+            let mapa = inicializarMapaSiNoExiste('mapSingle', 'single', oLat, oLon);
+            routeLayerSingle.forEach(l => mapa.removeLayer(l)); routeLayerSingle = [];
+            markersSingle.forEach(m => mapa.removeLayer(m)); markersSingle = [];
 
             let bounds = [[oLat, oLon]];
             let markerO = L.marker([oLat, oLon]).addTo(mapa).bindPopup(`<b>Origen:</b> ${nomO}`);
             markersSingle.push(markerO);
 
             validos.forEach((v, i) => {
-                let markerD = L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>${v.nombre}</b><br>${v.distKm.toFixed(2)} km`);
-                markersSingle.push(markerD);
-                bounds.push([v.lat, v.lon]);
-
+                let markerD = L.marker([v.lat, v.lon]).addTo(mapa).bindPopup(`<b>Destino ${i+1}:</b> ${v.nombre}<br>Distancia: ${v.distKm.toFixed(2)} km`);
+                markersSingle.push(markerD); bounds.push([v.lat, v.lon]);
                 let coordsGeoJson = v.geometry.coordinates.map(c => [c[1], c[0]]);
                 let polyline = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 4, opacity: 0.7 }).addTo(mapa);
                 routeLayerSingle.push(polyline);
             });
 
             mapa.fitBounds(bounds, { padding: [50, 50] });
+            datosUltimaRutaSingle = { origen: { lat: oLat, lon: oLon, nombre: nomO }, destinos: validos, sumaDistanciasKm: distanciaTotalGlobal.toFixed(2) };
 
         } catch (error) {
             document.getElementById('s_loader').style.display = 'none';
-            mostrarError('s', "Error de conexión al procesar rutas.");
+            mostrarError('s', "Error procesando rutas: " + error.message);
         }
     }
 
-    // --- PROCESAR KML ---
-    function procesarKML() {
+    // --- MODO 3: MAPA KML ---
+    async function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
         document.getElementById('k_resultados').style.display = 'none';
+        document.getElementById('k_loader').style.display = 'block';
 
+        const esDB = document.querySelector('input[name="k_origen_mode"]:checked').value === 'db';
         const texto = document.getElementById('k_datos').value.trim();
-        if (!texto) { mostrarError('k', "Ingresa los datos para el KML."); return; }
-
-        const lineas = texto.split('\n');
         let puntosKml = [];
 
-        for (let i = 0; i < lineas.length; i++) {
-            const linea = lineas[i].trim();
-            if (!linea || linea.startsWith('#')) continue;
-            const partes = linea.split(/,|\t/).map(p => p.trim());
-            
-            if (partes.length >= 2) {
-                const lat = parseFloat(partes[0].replace(',', '.'));
-                const lon = parseFloat(partes[1].replace(',', '.'));
-                const nombre = partes[2] ? partes[2] : `Punto ${i + 1}`;
-                const desc1 = partes[3] || '';
-                const desc2 = partes[4] || '';
-                const desc3 = partes[5] || '';
-                const color = partes[6] ? partes[6].toLowerCase() : '#1a73e8';
-
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    puntosKml.push({ lat, lon, nombre, desc1, desc2, desc3, color });
-                }
+        try {
+            if (!texto) {
+                document.getElementById('k_loader').style.display = 'none';
+                return mostrarError('k', "Ingresa datos para procesar KML.");
             }
+
+            const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+            if (esDB) {
+                const datosDB = await consultarDB(lineas);
+                datosDB.forEach((d, i) => {
+                    const lat = parseFloat(d.lat);
+                    const lon = parseFloat(d.lon);
+                    if (!isNaN(lat) && !isNaN(lon)) {
+                        puntosKml.push({
+                            lat, lon,
+                            nombre: d.nombre,
+                            desc1: d.desc1, desc2: d.desc2, desc3: d.desc3,
+                            color: '#1a73e8'
+                        });
+                    }
+                });
+            } else {
+                lineas.forEach((linea, i) => {
+                    const partes = linea.split(/,|\t/).map(p => p.trim());
+                    if (partes.length >= 2) {
+                        const lat = parseFloat(partes[0].replace(',', '.'));
+                        const lon = parseFloat(partes[1].replace(',', '.'));
+                        const nombre = partes[2] || `Punto ${i + 1}`;
+                        const desc1 = partes[3] || '', desc2 = partes[4] || '', desc3 = partes[5] || '';
+                        const color = partes[6] ? partes[6].toLowerCase() : '#1a73e8';
+                        if (!isNaN(lat) && !isNaN(lon)) puntosKml.push({ lat, lon, nombre, desc1, desc2, desc3, color });
+                    }
+                });
+            }
+
+            document.getElementById('k_loader').style.display = 'none';
+
+            if (puntosKml.length === 0) return mostrarError('k', "No se encontraron coordenadas válidas.");
+
+            const tablaBody = document.getElementById('k_tablaBody');
+            tablaBody.innerHTML = '';
+
+            puntosKml.forEach((p, idx) => {
+                tablaBody.innerHTML += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td><strong>${p.nombre}</strong></td>
+                        <td>${p.lat}</td><td>${p.lon}</td>
+                        <td>${p.desc1}</td><td>${p.desc2}</td><td>${p.desc3}</td>
+                        <td style="color:${p.color}; font-weight:bold;">${p.color}</td>
+                    </tr>`;
+            });
+
+            // Generación de XML KML
+            let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
+            puntosKml.forEach(p => {
+                kmlContent += `  <Placemark>\n    <name>${p.nombre}</name>\n    <description><![CDATA[Desc 1: ${p.desc1}<br>Desc 2: ${p.desc2}<br>Desc 3: ${p.desc3}]]></description>\n    <Point>\n      <coordinates>${p.lon},${p.lat},0</coordinates>\n    </Point>\n  </Placemark>\n`;
+            });
+            kmlContent += `</Document>\n</kml>`;
+
+            const blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+            document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
+
+            document.getElementById('k_resultados').style.display = 'block';
+
+            let mapa = inicializarMapaSiNoExiste('mapKml', 'kml', puntosKml[0].lat, puntosKml[0].lon);
+            markersKml.forEach(m => mapa.removeLayer(m)); markersKml = [];
+
+            let bounds = [];
+            puntosKml.forEach((p, idx) => {
+                let marker = L.marker([p.lat, p.lon]).addTo(mapa)
+                    .bindPopup(`<b>${p.nombre}</b><br>${p.desc1}<br>${p.desc2}<br>${p.desc3}`);
+                markersKml.push(marker);
+                bounds.push([p.lat, p.lon]);
+            });
+
+            mapa.fitBounds(bounds, { padding: [50, 50] });
+            datosUltimoKML = { puntos: puntosKml, cantidad: puntosKml.length };
+
+        } catch (error) {
+            document.getElementById('k_loader').style.display = 'none';
+            mostrarError('k', "Error generando KML: " + error.message);
+        }
+    }
+
+    // --- GUARDAR Y CONSULTAR BITÁCORA ---
+    async function guardarEnBitacora(herramienta, datos) {
+        if (!SCRIPT_URL) return alert("Configura la URL del Apps Script primero.");
+        if (!procesoActivo.nombre) return alert("Debes seleccionar/crear un proceso en el Panel de Control.");
+
+        // Elegir subproceso si existen múltiples
+        let subElegido = procesoActivo.subprocesos[0] || 'General';
+        if (procesoActivo.subprocesos.length > 1) {
+            let seleccion = prompt(`Selecciona el Subproceso para guardar:\n${procesoActivo.subprocesos.join('\n')}`, subElegido);
+            if (seleccion) subElegido = seleccion.trim();
         }
 
-        if (puntosKml.length === 0) { mostrarError('k', "No se encontraron coordenadas válidas."); return; }
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'saveBitacora',
+                    proceso: procesoActivo.nombre,
+                    subProceso: subElegido,
+                    tipoHerramienta: herramienta,
+                    datos: datos
+                })
+            });
+            const json = await res.json();
+            if (json.status === 'success') alert("✅ Registrado con éxito en la Bitácora.");
+            else alert("Error: " + json.message);
+        } catch (err) {
+            alert("Error al conectar con la Bitácora: " + err.message);
+        }
+    }
 
-        const tablaBody = document.getElementById('k_tablaBody');
-        tablaBody.innerHTML = '';
-        let listaPuntosResumen = [];
+    async function cargarProcesosBitacora() {
+        if (!SCRIPT_URL) return alert("Configura la URL del Apps Script.");
+        try {
+            const res = await fetch(`${SCRIPT_URL}?action=getProcesses`);
+            const json = await res.json();
+            if (json.status !== 'success') return alert("Error leyendo Bitácora: " + json.message);
 
-        puntosKml.forEach((p, idx) => {
-            tablaBody.innerHTML += `
-                <tr>
-                    <td>${idx + 1}</td>
-                    <td><strong>${p.nombre}</strong></td>
-                    <td>${p.lat}</td>
-                    <td>${p.lon}</td>
-                    <td>${p.desc1}</td>
-                    <td>${p.desc2}</td>
-                    <td>${p.desc3}</td>
-                    <td><span style="background:${p.color}; color:white; padding:2px 6px; border-radius:4px;">${p.color}</span></td>
-                </tr>`;
-            listaPuntosResumen.push(`${p.nombre} (${p.lat}, ${p.lon})`);
-        });
+            listaProcesosBitacora = json.data;
+            const selectProc = document.getElementById('select_proceso');
+            selectProc.innerHTML = '<option value="">-- Selecciona --</option>';
 
-        resumenUltimoCalculo = {
-            distancia: 'N/A (KML)',
-            tiempo: 'N/A (KML)',
-            detalle: `Total Puntos: ${puntosKml.length} | Lista: ${listaPuntosResumen.join('; ')}`
-        };
+            listaProcesosBitacora.forEach(p => {
+                selectProc.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+            });
 
-        // Generar XML KML
-        let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
-        puntosKml.forEach(p => {
-            kmlContent += `  <Placemark>\n    <name>${p.nombre}</name>\n    <description>${p.desc1} - ${p.desc2} - ${p.desc3}</description>\n    <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>\n  </Placemark>\n`;
-        });
-        kmlContent += `</Document>\n</kml>`;
+            alert("Lista de procesos actualizada.");
+        } catch (err) {
+            alert("Error consultando la Bitácora: " + err.message);
+        }
+    }
 
-        const blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
-        document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
+    function actualizarSubprocesosConsulta() {
+        const procNom = document.getElementById('select_proceso').value;
+        const selectSub = document.getElementById('select_subproceso');
+        selectSub.innerHTML = '<option value="">-- Selecciona --</option>';
 
-        document.getElementById('k_resultados').style.display = 'block';
-        let mapa = inicializarMapaSiNoExiste('mapKml', 'kml', puntosKml[0].lat, puntosKml[0].lon);
+        const proc = listaProcesosBitacora.find(p => p.nombre === procNom);
+        if (proc && proc.subProcesos) {
+            proc.subProcesos.forEach(s => {
+                selectSub.innerHTML += `<option value="${s}">${s}</option>`;
+            });
+        }
+    }
 
-        markersKml.forEach(m => mapa.removeLayer(m));
-        markersKml = [];
-        let bounds = [];
+    async function consultarDetalleBitacora() {
+        const proc = document.getElementById('select_proceso').value;
+        const sub = document.getElementById('select_subproceso').value;
+        const container = document.getElementById('consulta_resultados');
 
-        puntosKml.forEach(p => {
-            let marker = L.marker([p.lat, p.lon]).addTo(mapa)
-                .bindPopup(`<b>${p.nombre}</b><br>${p.desc1}<br>${p.desc2}<br>${p.desc3}`);
-            markersKml.push(marker);
-            bounds.push([p.lat, p.lon]);
-        });
+        if (!proc || !sub) return alert("Selecciona tanto el proceso como el subproceso.");
 
-        mapa.fitBounds(bounds, { padding: [50, 50] });
+        try {
+            container.innerHTML = "Cargando datos...";
+            const res = await fetch(`${SCRIPT_URL}?action=getBitacoraData&process=${encodeURIComponent(proc)}&subProcess=${encodeURIComponent(sub)}`);
+            const json = await res.json();
+
+            if (json.status !== 'success') return container.innerHTML = `<span style="color:red">${json.message}</span>`;
+            if (json.data.length === 0) return container.innerHTML = "<i>No se encontraron registros para esta combinación.</i>";
+
+            let html = `<h4>Registros Encontrados: ${json.data.length}</h4>`;
+            json.data.forEach((reg, i) => {
+                html += `
+                    <div style="background: white; border: 1px solid var(--border); padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                        <strong>#${i+1} | Fecha: ${reg.fecha}</strong> | Herramienta: <b>${reg.herramienta}</b>
+                        <pre style="background:#f1f3f4; padding:8px; border-radius:4px; max-height:150px; overflow:auto; font-size:12px;">${JSON.stringify(reg.detalle, null, 2)}</pre>
+                    </div>`;
+            });
+            container.innerHTML = html;
+
+        } catch (err) {
+            container.innerHTML = `<span style="color:red">Error: ${err.message}</span>`;
+        }
     }
 </script>
-
 </body>
 </html>
