@@ -64,7 +64,7 @@
         </select>
     </div>
 
-    <!-- Opcion 1: Proceso Nuevo -->
+    <!-- Opción 1: Proceso Nuevo -->
     <div id="panel-nuevo" class="seccion-dinamica" style="display:none;">
         <div class="grid">
             <div class="form-group">
@@ -79,7 +79,7 @@
         <button class="action-btn" onclick="iniciarProcesoNuevo()">Crear Proceso e Iniciar</button>
     </div>
 
-    <!-- Opcion 2: Consulta -->
+    <!-- Opción 2: Consulta -->
     <div id="panel-consulta" class="seccion-dinamica" style="display:none;">
         <button class="action-btn" style="background:#f4b400; color:#000;" onclick="cargarProcesosDesdeBD()">🔄 Descargar Procesos Guardados</button>
         <div id="loader-consulta" class="loader">Consultando base de datos...</div>
@@ -94,7 +94,7 @@
 </div>
 
 <!-- ============================================== -->
-<!-- CONTENEDOR DE LA APP (OCULTO POR DEFECTO) -->
+<!-- CONTENEDOR DE LA APP -->
 <!-- ============================================== -->
 <div id="app-container" class="container" style="display: none;">
     
@@ -118,11 +118,11 @@
         <h3>2. Puntos a Visitar</h3>
         <div class="checkbox-group">
             <label><input type="radio" name="m_tipo" value="manual" checked onchange="toggleBD('m')"> Ingreso Manual</label>
-            <label><input type="radio" name="m_tipo" value="db" onchange="toggleBD('m')"> Buscar ID en BD (Columna A)</label>
+            <label><input type="radio" name="m_tipo" value="db" onchange="toggleBD('m')"> Buscar ID en BD (+500k Reg)</label>
         </div>
         <div class="form-group">
             <div id="m_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores y generar coordenadas</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores en Base Masiva</button>
             </div>
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
@@ -145,7 +145,6 @@
             <div class="resumen" id="m_totalDistancia"></div>
             <div id="m_contenedorLinks" style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;"></div>
             
-            <!-- Contenedor dinámico del Botón Guardar Bitácora -->
             <div id="m_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
@@ -163,11 +162,11 @@
         <h3>2. Destinos</h3>
         <div class="checkbox-group">
             <label><input type="radio" name="s_tipo" value="manual" checked onchange="toggleBD('s')"> Ingreso Manual</label>
-            <label><input type="radio" name="s_tipo" value="db" onchange="toggleBD('s')"> Buscar ID en BD</label>
+            <label><input type="radio" name="s_tipo" value="db" onchange="toggleBD('s')"> Buscar ID en BD (+500k Reg)</label>
         </div>
         <div class="form-group">
             <div id="s_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores y generar coordenadas</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores en Base Masiva</button>
             </div>
             <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte"></textarea>
         </div>
@@ -183,8 +182,8 @@
                 <tbody id="s_tablaBody"></tbody>
             </table>
             <div class="resumen" id="s_totalDistancia"></div>
+            <div id="s_contenedorLinks" style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;"></div>
             
-            <!-- Contenedor dinámico del Botón Guardar Bitácora -->
             <div id="s_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
@@ -194,11 +193,11 @@
         <h2>Generador de Puntos KML</h2>
         <div class="checkbox-group">
             <label><input type="radio" name="k_tipo" value="manual" checked onchange="toggleBD('k')"> Ingreso Manual</label>
-            <label><input type="radio" name="k_tipo" value="db" onchange="toggleBD('k')"> Buscar ID en BD</label>
+            <label><input type="radio" name="k_tipo" value="db" onchange="toggleBD('k')"> Buscar ID en BD (+500k Reg)</label>
         </div>
         <div class="form-group">
             <div id="k_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores y generar KML</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores en Base Masiva</button>
             </div>
             <label>Formato: Latitud, Longitud, Nombre, Desc1, Desc2, Desc3, Color</label>
             <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona N, Dir Juan, Mat, red"></textarea>
@@ -216,7 +215,6 @@
             </table>
             <a id="k_btnDescarga" class="btn-link" style="margin-top: 15px;" href="#" download="puntos.kml">📥 Descargar Archivo KML</a>
             
-            <!-- Contenedor dinámico del Botón Guardar Bitácora -->
             <div id="k_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
@@ -228,26 +226,22 @@
     // ==========================================
     // CONFIGURACIÓN DE CONEXIÓN A GOOGLE SHEETS
     // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7IntUn8T9ao64fSh3U8RPVU9k-fkh2BI3XW2iw5qd762LV09e6c-2vvMoLI4ASjXy/exec"; // <--- PEGA TU URL DE APPS SCRIPT AQUI
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyOWT4EFZElsP7X9Oxq0HNKHX9HRjQLTVx0-aEGhr5cNPyRMDR33rP-of2C-YAoJwhU/exec"; // <--- PEGA TU URL DE APPS SCRIPT AQUÍ
 
-    // Variables de estado del panel principal
-    let estadoActual = ''; // 'nuevo', 'consulta', 'libre'
+    let estadoActual = '';
     let procesoActivo = '';
     let subprocesoActivo = '';
-    let tempDatosGuardar = null; // Variable temporal para enviar a la bitacora
+    let tempDatosGuardar = null;
 
     let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
 
-    // ==========================================
-    // LOGICA DEL PANEL PRINCIPAL
-    // ==========================================
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
         document.getElementById('panel-consulta').style.display = (val === 'consulta') ? 'block' : 'none';
-        document.getElementById('app-container').style.display = 'none'; // Ocultar app siempre al cambiar
+        document.getElementById('app-container').style.display = 'none';
         
         if (val === 'libre') {
             estadoActual = 'libre';
@@ -269,16 +263,13 @@
         setTimeout(() => { if(mapMulti) mapMulti.invalidateSize(); }, 300);
     }
 
-    // ==========================================
-    // CONEXION A LA BASE DE DATOS (APPS SCRIPT)
-    // ==========================================
     function toggleBD(modo) {
         let isDB = document.querySelector(`input[name="${modo}_tipo"]:checked`).value === 'db';
         document.getElementById(`${modo}_btn_bd`).style.display = isDB ? 'block' : 'none';
         let txt = document.getElementById(modo === 'm' ? 'm_waypoints' : (modo === 's' ? 's_destinos' : 'k_datos'));
         txt.placeholder = isDB 
-            ? "Ingresa aquí los ID o valores a buscar en la Columna A (uno por línea)..." 
-            : "Formato manual original (Latitud, Longitud, Nombre...)";
+            ? "Ingresa aquí los ID a buscar en la Base Masiva (uno por línea)..." 
+            : "Formato manual (Latitud, Longitud, Nombre...)";
     }
 
     async function extraerDeBD(modo) {
@@ -286,35 +277,32 @@
         let queries = txt.value.trim().split('\n').map(q => q.trim()).filter(q => q);
         
         if(queries.length === 0) {
-            alert("Por favor, ingresa al menos un valor para buscar."); return;
+            alert("Ingresa al menos un valor para buscar."); return;
         }
 
         document.getElementById(modo+'_loader').style.display = 'block';
-        document.getElementById(modo+'_loader').innerText = "Consultando Base de Datos... ⏳";
+        document.getElementById(modo+'_loader').innerText = "Buscando en registros masivos... ⏳";
         
         try {
-            // GET evita problemas de CORS leyendo JSON
             let url = SCRIPT_URL + "?action=searchDB&queries=" + encodeURIComponent(JSON.stringify(queries));
             let response = await fetch(url);
             let result = await response.json();
 
             if (result.status === 'success' && result.data.length > 0) {
                 let lines = result.data.map(d => {
-                    if (modo === 'k') {
-                        return `${d.lat}, ${d.lon}, ${d.nombre}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`;
-                    } else {
-                        return `${d.lat}, ${d.lon}, ${d.nombre}`;
-                    }
+                    return (modo === 'k') 
+                        ? `${d.lat}, ${d.lon}, ${d.nombre}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`
+                        : `${d.lat}, ${d.lon}, ${d.nombre}`;
                 });
                 txt.value = lines.join('\n');
-                alert(`¡Se encontraron ${result.data.length} coincidencias!\nLos datos se han pegado automáticamente en el recuadro, ya puedes procesarlos.`);
-                document.querySelector(`input[name="${modo}_tipo"][value="manual"]`).click(); // Cambiar a manual visualmente
+                alert(`¡Se encontraron ${result.data.length} coincidencias!\nLos datos se han insertado correctamente.`);
+                document.querySelector(`input[name="${modo}_tipo"][value="manual"]`).click();
             } else {
-                alert("No se encontraron coincidencias en la Base de Datos para esos valores.");
+                alert("No se encontraron coincidencias en los registros masivos.");
             }
         } catch (error) {
             console.error(error);
-            alert("Error de conexión al buscar en Google Sheets.");
+            alert("Error de conexión al consultar la base de datos.");
         } finally {
             document.getElementById(modo+'_loader').style.display = 'none';
             document.getElementById(modo+'_loader').innerText = "Trabajando... ⏳";
@@ -353,20 +341,22 @@
             let result = await response.json();
             
             if(result.status === 'success') {
-                let html = `<h3>Registros de: ${procesoNombre}</h3><table><thead><tr><th>Fecha</th><th>Sub-Proceso</th><th>Modo</th><th>Datos</th></tr></thead><tbody>`;
+                let html = `<h3>Registros de: ${procesoNombre}</h3><table><thead><tr><th>Fecha</th><th>Sub-Proceso</th><th>Modo</th><th>Resumen</th><th>Enlace Ruta</th></tr></thead><tbody>`;
                 result.data.forEach(row => {
+                    let linkHtml = row.linkRuta ? `<a href="${row.linkRuta}" target="_blank" class="btn-link" style="padding:4px 8px; font-size:12px;">🗺️ Ver Ruta</a>` : 'N/A';
                     html += `<tr>
                         <td>${new Date(row.fecha).toLocaleString()}</td>
                         <td><strong>${row.subproceso}</strong></td>
                         <td>${row.modo}</td>
-                        <td style="text-align:left; font-size:11px; max-width: 400px; overflow:hidden;">${row.datos}</td>
+                        <td>${row.resumen || ''}</td>
+                        <td>${linkHtml}</td>
                     </tr>`;
                 });
                 html += `</tbody></table>`;
                 document.getElementById('resultados-consulta').innerHTML = html;
             }
         } catch(e) {
-            alert("Error al obtener detalle del proceso.");
+            alert("Error al obtener el detalle del proceso.");
         } finally {
             document.getElementById('loader-consulta').style.display = 'none';
         }
@@ -375,7 +365,7 @@
     function renderizarBotonGuardar(modo) {
         let caja = document.getElementById(modo + '_guardar_btn_box');
         if(estadoActual === 'nuevo') {
-            caja.innerHTML = `<button class="action-btn" style="background:#34a853;" onclick="enviarABitacora()">💾 Guardar Resultados en Bitácora</button>`;
+            caja.innerHTML = `<button class="action-btn" style="background:#34a853;" onclick="enviarABitacora()">💾 Guardar Resultados y Link en Bitácora</button>`;
         } else {
             caja.innerHTML = '';
         }
@@ -388,11 +378,12 @@
             proceso: procesoActivo,
             subproceso: subprocesoActivo,
             modo: tempDatosGuardar.modoApp,
+            resumen: tempDatosGuardar.resumen,
+            linkRuta: tempDatosGuardar.linkRuta,
             datosJSON: JSON.stringify(tempDatosGuardar.datos)
         };
         
         try {
-            // Se usa POST con form-urlencoded. no-cors ignora la lectura de respuesta para sortear bloqueos de CORS nativos de Google.
             let formData = new URLSearchParams();
             formData.append('action', 'saveBitacora');
             formData.append('payload', JSON.stringify(payload));
@@ -403,17 +394,13 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             });
-            // Al usar no-cors no se puede leer JSON, se asume éxito si no entra al catch de fetch
-            alert(`¡Guardado Exitosamente!\nProceso: ${procesoActivo} -> ${subprocesoActivo} guardado en la hoja "bitacora".`);
+            alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nLink de la ruta enlazado correctamente.`);
         } catch(e) {
-            alert("Error al enviar los datos a la bitácora.");
+            alert("Error al guardar en la bitácora.");
             console.error(e);
         }
     }
 
-    // ==========================================
-    // LOGICA DE LOS MAPAS Y PROCESAMIENTO
-    // ==========================================
     function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
@@ -436,6 +423,18 @@
         el.style.display = 'block';
     }
 
+    // GENERAR URL GOOGLE MAPS DIRECTA
+    function generarGoogleMapsUrl(puntos) {
+        if (puntos.length < 2) return '';
+        let origen = `${puntos[0].lat},${puntos[0].lon}`;
+        let destino = `${puntos[puntos.length - 1].lat},${puntos[puntos.length - 1].lon}`;
+        let waypoints = puntos.slice(1, -1).map(p => `${p.lat},${p.lon}`).join('|');
+        
+        let url = `https://www.google.com/maps/dir/?api=1&origin=${origen}&destination=${destino}`;
+        if (waypoints) url += `&waypoints=${waypoints}`;
+        return url;
+    }
+
     async function procesarRutaMultiple() {
         document.getElementById('m_errorMsg').style.display = 'none';
         document.getElementById('m_resultados').style.display = 'none';
@@ -443,7 +442,7 @@
 
         const oLat = parseFloat(document.getElementById('m_origenLat').value.replace(',', '.'));
         const oLon = parseFloat(document.getElementById('m_origenLon').value.replace(',', '.'));
-        if (isNaN(oLat) || isNaN(oLon)) { mostrarError('m', "Faltan coordenadas de origen."); document.getElementById('m_loader').style.display = 'none'; return; }
+        if (isNaN(oLat) || isNaN(oLon)) { mostrarError('m', "Coordenadas de origen no válidas."); document.getElementById('m_loader').style.display = 'none'; return; }
 
         let puntos = [{ lat: oLat, lon: oLon, nombre: document.getElementById('m_nombreOrigen').value.trim() || 'Origen' }];
         const lineas = document.getElementById('m_waypoints').value.trim().split('\n');
@@ -454,7 +453,6 @@
         });
 
         if (document.getElementById('m_regreso').checked) puntos.push({ lat: oLat, lon: oLon, nombre: 'Regreso a Origen' });
-
         if (puntos.length < 2) { mostrarError('m', "Puntos insuficientes."); document.getElementById('m_loader').style.display = 'none'; return; }
 
         let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
@@ -473,7 +471,15 @@
                 tbody.innerHTML += `<tr><td>${i+1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color:#1a73e8; font-weight:bold;">${(leg.distance/1000).toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(leg.duration/60)} min</td></tr>`;
             });
 
-            document.getElementById('m_totalDistancia').innerHTML = `Total: ${(route.distance/1000).toFixed(2)} km | Tiempo: ${Math.round(route.duration/60)} min`;
+            let distTotalKm = (route.distance/1000).toFixed(2);
+            let tiempoMin = Math.round(route.duration/60);
+
+            document.getElementById('m_totalDistancia').innerHTML = `Total: ${distTotalKm} km | Tiempo: ${tiempoMin} min`;
+            
+            // Generar Link a Google Maps
+            let linkMaps = generarGoogleMapsUrl(puntos);
+            document.getElementById('m_contenedorLinks').innerHTML = `<a href="${linkMaps}" target="_blank" class="btn-link">🗺️ Abrir Ruta Múltiple en Google Maps</a>`;
+
             document.getElementById('m_resultados').style.display = 'block';
 
             if (!mapMulti) mapMulti = inicializarMapa('map', oLat, oLon);
@@ -489,12 +495,17 @@
                 markersMulti.push(m);
             });
 
-            // Preparar para la bitacora
-            tempDatosGuardar = { modoApp: 'Ruta Múltiple', datos: { distanciaGlobal: (route.distance/1000).toFixed(2), paradas: puntos.length, puntosRecorridos: puntos.map(p=>p.nombre) } };
+            // Asignar datos temporales para bitácora
+            tempDatosGuardar = { 
+                modoApp: 'Ruta Múltiple', 
+                resumen: `Distancia: ${distTotalKm} km | Paradas: ${puntos.length}`,
+                linkRuta: linkMaps,
+                datos: { distanciaGlobal: distTotalKm, paradas: puntos.length, puntosRecorridos: puntos.map(p=>p.nombre) } 
+            };
             renderizarBotonGuardar('m');
 
         } catch(e) {
-            mostrarError('m', "Error calculando la ruta con OSRM.");
+            mostrarError('m', "Error al calcular la ruta con OSRM.");
         } finally { document.getElementById('m_loader').style.display = 'none'; }
     }
 
@@ -544,14 +555,24 @@
             });
 
             mapSingle.fitBounds(bounds, { padding: [30, 30] });
-            document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${tDist.toFixed(2)} km | Tiempo acumulado: ${Math.round(tTime)} min`;
+            let sumaKm = tDist.toFixed(2);
+            document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
+
+            // Para múltiples destinos origen-a-punto, enlazamos al punto origen en Google Maps
+            let linkMaps = `https://www.google.com/maps/search/?api=1&query=${oLat},${oLon}`;
+            document.getElementById('s_contenedorLinks').innerHTML = `<a href="${linkMaps}" target="_blank" class="btn-link">🗺️ Ver Ubicación de Origen en Maps</a>`;
+
             document.getElementById('s_resultados').style.display = 'block';
 
-            // Preparar para la bitacora
-            tempDatosGuardar = { modoApp: 'Múltiples Destinos', datos: { destinosCalculados: validosGuardar.length, sumaDistancia: tDist.toFixed(2), listadoDestinos: validosGuardar.join(' | ') } };
+            tempDatosGuardar = { 
+                modoApp: 'Múltiples Destinos', 
+                resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km`,
+                linkRuta: linkMaps,
+                datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | ') } 
+            };
             renderizarBotonGuardar('s');
 
-        } catch(e) { mostrarError('s', "Error en OSRM."); } 
+        } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
         finally { document.getElementById('s_loader').style.display = 'none'; }
     }
 
@@ -573,13 +594,38 @@
         });
 
         if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
-        
-        document.getElementById('k_resultados').style.display = 'block';
-        if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
-        // Limpieza basica (omitida logica compleja de capas por espacio, se centra en funcionalidad base)
 
-        // Preparar para la bitacora
-        tempDatosGuardar = { modoApp: 'Mapa KML', datos: { cantidadPuntos: puntos.length, puntosNombres: puntos.map(x=>x.nom).join(', ') } };
+        let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    ${puntos.map(p => `
+    <Placemark>
+      <name>${p.nom}</name>
+      <description>${p.d1} - ${p.d2} - ${p.d3}</description>
+      <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>
+    </Placemark>`).join('')}
+  </Document>
+</kml>`;
+
+        let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+        document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
+
+        if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
+        let bounds = [];
+        puntos.forEach(p => {
+            bounds.push([p.lat, p.lon]);
+            L.marker([p.lat, p.lon]).addTo(mapKml).bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
+        });
+        mapKml.fitBounds(bounds, { padding: [30, 30] });
+
+        document.getElementById('k_resultados').style.display = 'block';
+
+        tempDatosGuardar = {
+            modoApp: 'Mapa KML',
+            resumen: `Puntos procesados en KML: ${puntos.length}`,
+            linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
+            datos: { totalPuntos: puntos.length }
+        };
         renderizarBotonGuardar('k');
     }
 </script>
