@@ -556,7 +556,7 @@
                     let km = r.distance/1000, mn = r.duration/60;
                     tDist += km; tTime += mn;
                     
-                    tbody.innerHTML += `<tr><td>${idx+1}</td><td><strong>${d.nombre}</strong></td><td>${d.lat}</td><td>${d.lon}</td><td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 4px 8px; font-size: 12px;">🗺️ Abrir</a></td></tr>`;
+                    tbody.innerHTML += `<tr><td>${idx+1}</td><td><strong>${d.nombre}</strong></td><td>${d.lat}</td><td>${d.lon}</td><td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td><td><a href="${linkMaps}" target="_blank" class="btn-link" style="padding: 4px 8px; font-size: 12px;">🗺️ Abrir</a></td></tr>`;
                     
                     validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
                     bounds.push([d.lat, d.lon]);
