@@ -428,14 +428,7 @@ function cambiarPestana(tipo) {
         let el = document.getElementById(modo + '_errorMsg');
         el.innerText = msg;
         el.style.display = 'block';
-
-
  }
-
-
-
-
-    
 
     // GENERAR URL GOOGLE MAPS DIRECTA
     function generarGoogleMapsUrl(puntos) {
@@ -584,26 +577,6 @@ async function procesarRutaMasivaPuntoAPunto() {
                 markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
                 let poly = L.polyline(item.data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
                 routeLayerSingle.push(poly);
-
-
-
-// ... (tu código previo)
-        document.getElementById('s_resultados').style.display = 'block';
-
-        // 🟢 1. FORZAR REDIBUJADO DEL MAPA ESCxESC
-        setTimeout(() => {
-            if(mapSingle) {
-                mapSingle.invalidateSize();
-                mapSingle.fitBounds(bounds, { padding: [30, 30] });
-            }
-        }, 150);
-
-        // 🟢 2. PREPARAR DATOS COMO MÚLTIPLES REGISTROS SEPARADOS
-        tempDatosGuardar = []; // Ahora es un array
-        resultados.forEach((item) => {
-            if(item.data.code === 'Ok') {
-                let km = (item.data.routes[0].legs[0].distance / 1000).toFixed(2);
-                let linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${item.d.lat},${item.d.lon}&travelmode=driving`;
                 
                 tempDatosGuardar.push({
                     modoApp: 'EscxEsc',
