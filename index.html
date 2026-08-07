@@ -702,14 +702,11 @@ async function procesarRutaMasivaPuntoAPunto() {
     } finally { 
         document.getElementById('s_loader').style.display = 'none'; 
     }
-}
+                 });
 
 
 
-
-                
-            }
-        });
+        
 
         mapSingle.fitBounds(bounds, { padding: [30, 30] });
         let sumaKm = tDist.toFixed(2);
