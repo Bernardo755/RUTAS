@@ -585,7 +585,71 @@ async function procesarRutaMasivaPuntoAPunto() {
         finally { document.getElementById('s_loader').style.display = 'none'; }
     } 
 
+/**
+ * Renderiza la tabla de múltiples destinos con botones desplegables por fila.
+ * @param {Array} rutas - Arreglo de rutas devuelto por OSRM (data.routes)
+ */
+function renderizarTablaRutasMultiples(rutas) {
+  const tbody = document.getElementById('tabla-rutas-multiples-body');
+  tbody.innerHTML = ''; // Limpiar tabla previa
 
+  if (!rutas || rutas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay rutas calculadas.</td></tr>';
+    return;
+  }
+
+  rutas.forEach((ruta, index) => {
+    const idDetalle = `detalle-fila-ruta-${index}`;
+    const distanciaKm = (ruta.distance / 1000).toFixed(2);
+    const tiempoMin = Math.round(ruta.duration / 60);
+
+    // Generar el desglose de tramos (legs) de la ruta
+    const tramosHTML = ruta.legs ? ruta.legs.map((leg, legIdx) => `
+      <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+        <span><i class="bi bi-geo-alt me-1"></i><b>Tramo ${legIdx + 1}:</b> ${leg.summary || 'Vía principal'}</span>
+        <span class="badge bg-light text-dark border">
+          ${(leg.distance / 1000).toFixed(2)} km - ${Math.round(leg.duration / 60)} min
+        </span>
+      </div>
+    `).join('') : '<p class="text-muted m-0">Sin información de tramos.</p>';
+
+    // 1. Fila Principal de la Ruta
+    const filaPrincipal = document.createElement('tr');
+    filaPrincipal.innerHTML = `
+      <td><span class="fw-bold">Ruta #${index + 1}</span></td>
+      <td>${ruta.legs ? ruta.legs.length : 1} tramos</td>
+      <td><span class="badge bg-success fs-6">${distanciaKm} km</span></td>
+      <td><span class="badge bg-info text-dark fs-6">${tiempoMin} min</span></td>
+      <td class="text-end">
+        <!-- 🟢 BOTÓN DESPLEGABLE POR RUTA -->
+        <button class="btn btn-sm btn-outline-primary" onclick="toggleFilaDetalle('${idDetalle}', this)">
+          Ver detalle ▼
+        </button>
+      </td>
+    `;
+
+    // 2. Fila Desplegable (Oculta por defecto)
+    const filaDesplegable = document.createElement('tr');
+    filaDesplegable.id = idDetalle;
+    filaDesplegable.style.display = 'none'; // Estado inicial oculto
+    filaDesplegable.className = 'table-light';
+    filaDesplegable.innerHTML = `
+      <td colspan="5" class="p-3">
+        <div class="bg-white p-3 rounded border shadow-sm">
+          <h6 class="fw-bold mb-3 text-primary">Desglose de Tramos - Ruta #${index + 1}</h6>
+          ${tramosHTML}
+        </div>
+      </td>
+    `;
+
+    // Agregar ambas filas a la tabla
+    tbody.appendChild(filaPrincipal);
+    tbody.appendChild(filaDesplegable);
+  });
+}
+
+
+    
 
     function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
