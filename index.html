@@ -420,14 +420,6 @@
         el.style.display = 'block';
     }
 
-
-    
-    function mostrarError(modo, msg) {
-        let el = document.getElementById(modo + '_errorMsg');
-        el.innerText = msg;
-        el.style.display = 'block';
-    }
-
     // GENERAR URL GOOGLE MAPS DIRECTA
     function generarGoogleMapsUrl(puntos) {
         if (puntos.length < 2) return '';
