@@ -101,7 +101,7 @@
     <!-- Pestañas de Navegación -->
     <div class="tabs">
         <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
-        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ Múltiples Destinos</button>
+        <button class="tab-btn" onclick="cambiarPestana('single')">➡️ EscxEsc</button>
         <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
     </div>
 
@@ -118,7 +118,7 @@
         <h3>2. Puntos a Visitar</h3>
         <div class="checkbox-group">
             <label><input type="radio" name="m_tipo" value="manual" checked onchange="toggleBD('m')"> Ingreso Manual</label>
-            <label><input type="radio" name="m_tipo" value="db" onchange="toggleBD('m')"> Buscar ID en BD (+500k Reg)</label>
+            <label><input type="radio" name="m_tipo" value="db" onchange="toggleBD('m')"> Buscar ID en BD</label>
         </div>
         <div class="form-group">
             <div id="m_btn_bd" style="display:none; margin-bottom:10px;">
@@ -187,29 +187,6 @@
             <div id="s_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
-
-
-
-<div class="table-responsive">
-  <table class="table table-hover align-middle shadow-sm border">
-    <thead class="table-light">
-      <tr>
-        <th># Ruta</th>
-        <th>Destino / Tramos</th>
-        <th>Distancia</th>
-        <th>Tiempo Est.</th>
-        <th class="text-end">Acciones</th>
-      </tr>
-    </thead>
-    <tbody id="tabla-rutas-multiples-body">
-      <!-- Las filas se insertan dinámicamente con JS -->
-    </tbody>
-  </table>
-</div>
-
-
-
-    
 
     <!-- MODO 3: MAPA KML -->
     <div id="tab-kml" class="tab-content">
@@ -532,6 +509,18 @@
         } finally { document.getElementById('m_loader').style.display = 'none'; }
     }
 
+// --- MAPAS TILES ---
+    function obtenerCapaTile(estilo) {
+        if (estilo === 'osm') {
+            return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+        } else if (estilo === 'light') {
+            return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; CARTO' });
+        } else {
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles &copy; Esri' });
+        }
+    }
+
+    
     async function procesarRutaMasivaPuntoAPunto() {
         document.getElementById('s_errorMsg').style.display = 'none';
         document.getElementById('s_resultados').style.display = 'none';
@@ -567,7 +556,7 @@
                     let km = r.distance/1000, mn = r.duration/60;
                     tDist += km; tTime += mn;
                     
-                    tbody.innerHTML += `<tr><td>${idx+1}</td><td><strong>${d.nombre}</strong></td><td>${d.lat}</td><td>${d.lon}</td><td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td></tr>`;
+                    tbody.innerHTML += `<tr><td>${idx+1}</td><td><strong>${d.nombre}</strong></td><td>${d.lat}</td><td>${d.lon}</td><td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td><td><a href="${gmapsUrl}" target="_blank" class="btn-link" style="padding: 4px 8px; font-size: 12px;">🗺️ Abrir</a></td></tr>`;
                     
                     validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
                     bounds.push([d.lat, d.lon]);
