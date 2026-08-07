@@ -245,64 +245,6 @@
     let routeLayerSingle = [], markersSingle = [];
 
 
-    // Almacena las capas actuales de cada mapa para permitir cambios dinámicos
-    let currentLayers = { multi: null, single: null, kml: null };
-
-    function obtenerCapaTile(estilo) {
-        if (estilo === 'osm') {
-            return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
-            });
-        } else if (estilo === 'light') {
-            return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19,
-                attribution: '&copy; CARTO'
-            });
-        } else {
-            // Por defecto: Satelital (Esri World Imagery)
-            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-eGIS, and GIS User Community'
-            });
-        }
-    }
-
-    function inicializarMapaSiNoExiste(idContenedor, claveMapa, lat, lon) {
-        let mapa = null;
-        let selectEstilo = document.getElementById(claveMapa + '_mapStyle');
-        let estiloSeleccionado = selectEstilo ? selectEstilo.value : 'satellite';
-
-        if (claveMapa === 'multi') {
-            if (!mapMulti) {
-                mapMulti = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.multi = obtenerCapaTile(estiloSeleccionado).addTo(mapMulti);
-            } else {
-                mapMulti.setView([lat, lon], 13);
-                mapMulti.invalidateSize();
-            }
-            mapa = mapMulti;
-        } else if (claveMapa === 'single') {
-            if (!mapSingle) {
-                mapSingle = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.single = obtenerCapaTile(estiloSeleccionado).addTo(mapSingle);
-            } else {
-                mapSingle.setView([lat, lon], 13);
-                mapSingle.invalidateSize();
-            }
-            mapa = mapSingle;
-        } else if (claveMapa === 'kml') {
-            if (!mapKml) {
-                mapKml = L.map(idContenedor).setView([lat, lon], 13);
-                currentLayers.kml = obtenerCapaTile(estiloSeleccionado).addTo(mapKml);
-            } else {
-                mapKml.setView([lat, lon], 13);
-                mapKml.invalidateSize();
-            }
-            mapa = mapKml;
-        }
-        return mapa;
-    }
 
     function cambiarCapaMapa(claveMapa, estilo) {
         let mapa = null;
@@ -476,22 +418,17 @@ function cambiarPestana(tipo) {
 
 async function enviarABitacora() {
     if(!tempDatosGuardar || !procesoActivo) return;
-    
-    try {
-        // Detecta si hay múltiples rutas a guardar (EscxEsc) o solo una (Ruta Múltiple)
-        let datosAEnviar = Array.isArray(tempDatosGuardar) ? tempDatosGuardar : [tempDatosGuardar];
         
-        // Enviamos cada ruta por separado
-        for (let item of datosAEnviar) {
-            let payload = {
-                proceso: procesoActivo,
-                subproceso: subprocesoActivo,
-                modo: item.modoApp,
-                resumen: item.resumen,
-                linkRuta: item.linkRuta,
-                datosJSON: JSON.stringify(item.datos)
-            };
-            
+        let payload = {
+            proceso: procesoActivo,
+            subproceso: subprocesoActivo,
+            modo: tempDatosGuardar.modoApp,
+            resumen: tempDatosGuardar.resumen,
+            linkRuta: tempDatosGuardar.linkRuta,
+            datosJSON: JSON.stringify(tempDatosGuardar.datos)
+        };
+        
+        try {
             let formData = new URLSearchParams();
             formData.append('action', 'saveBitacora');
             formData.append('payload', JSON.stringify(payload));
@@ -502,14 +439,12 @@ async function enviarABitacora() {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             });
+            alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nLink de la ruta enlazado correctamente.`);
+        } catch(e) {
+            alert("Error al guardar en la bitácora.");
+            console.error(e);
         }
-        
-        alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nSe registraron ${datosAEnviar.length} fila(s) en la bitácora.`);
-    } catch(e) {
-        alert("Error al guardar en la bitácora.");
-        console.error(e);
     }
-}
 
    function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
