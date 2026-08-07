@@ -485,19 +485,24 @@
         }
     }
 
-    async function enviarABitacora() {
-        if(!tempDatosGuardar || !procesoActivo) return;
+async function enviarABitacora() {
+    if(!tempDatosGuardar || !procesoActivo) return;
+    
+    try {
+        // Detecta si hay múltiples rutas a guardar (EscxEsc) o solo una (Ruta Múltiple)
+        let datosAEnviar = Array.isArray(tempDatosGuardar) ? tempDatosGuardar : [tempDatosGuardar];
         
-        let payload = {
-            proceso: procesoActivo,
-            subproceso: subprocesoActivo,
-            modo: tempDatosGuardar.modoApp,
-            resumen: tempDatosGuardar.resumen,
-            linkRuta: tempDatosGuardar.linkRuta,
-            datosJSON: JSON.stringify(tempDatosGuardar.datos)
-        };
-        
-        try {
+        // Enviamos cada ruta por separado
+        for (let item of datosAEnviar) {
+            let payload = {
+                proceso: procesoActivo,
+                subproceso: subprocesoActivo,
+                modo: item.modoApp,
+                resumen: item.resumen,
+                linkRuta: item.linkRuta,
+                datosJSON: JSON.stringify(item.datos)
+            };
+            
             let formData = new URLSearchParams();
             formData.append('action', 'saveBitacora');
             formData.append('payload', JSON.stringify(payload));
@@ -508,12 +513,14 @@
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             });
-            alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nLink de la ruta enlazado correctamente.`);
-        } catch(e) {
-            alert("Error al guardar en la bitácora.");
-            console.error(e);
         }
+        
+        alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nSe registraron ${datosAEnviar.length} fila(s) en la bitácora.`);
+    } catch(e) {
+        alert("Error al guardar en la bitácora.");
+        console.error(e);
     }
+}
 
    function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
@@ -521,21 +528,6 @@
         return m;
     }
 
-    function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
-        document.getElementById(`tab-${tipo}`).classList.add('active');
-        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
-        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
-        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
-    }
-
-    function mostrarError(modo, msg) {
-        let el = document.getElementById(modo + '_errorMsg');
-        el.innerText = msg;
-        el.style.display = 'block';
-    }
 
     // GENERAR URL GOOGLE MAPS DIRECTA
     function generarGoogleMapsUrl(puntos) {
@@ -684,6 +676,49 @@ async function procesarRutaMasivaPuntoAPunto() {
                 markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
                 let poly = L.polyline(item.data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
                 routeLayerSingle.push(poly);
+
+
+
+// ... (tu código previo)
+        document.getElementById('s_resultados').style.display = 'block';
+
+        // 🟢 1. FORZAR REDIBUJADO DEL MAPA ESCxESC
+        setTimeout(() => {
+            if(mapSingle) {
+                mapSingle.invalidateSize();
+                mapSingle.fitBounds(bounds, { padding: [30, 30] });
+            }
+        }, 150);
+
+        // 🟢 2. PREPARAR DATOS COMO MÚLTIPLES REGISTROS SEPARADOS
+        tempDatosGuardar = []; // Ahora es un array
+        resultados.forEach((item) => {
+            if(item.data.code === 'Ok') {
+                let km = (item.data.routes[0].legs[0].distance / 1000).toFixed(2);
+                let linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${item.d.lat},${item.d.lon}&travelmode=driving`;
+                
+                tempDatosGuardar.push({
+                    modoApp: 'EscxEsc',
+                    resumen: `Destino: ${item.d.nombre} | Distancia: ${km} km`,
+                    linkRuta: linkIndividualMaps,
+                    datos: { destino: item.d.nombre, lat: item.d.lat, lon: item.d.lon, distancia: km }
+                });
+            }
+        });
+
+        renderizarBotonGuardar('s');
+
+    } catch(e) {
+        mostrarError('s', "Error al procesar las rutas masivas.");
+    } finally { 
+        document.getElementById('s_loader').style.display = 'none'; 
+    }
+}
+
+
+
+
+                
             }
         });
 
@@ -707,12 +742,6 @@ async function procesarRutaMasivaPuntoAPunto() {
     } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
     finally { document.getElementById('s_loader').style.display = 'none'; }
 }
-
-
-    
-
-
-    
 
     function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
@@ -766,12 +795,6 @@ async function procesarRutaMasivaPuntoAPunto() {
         };
         renderizarBotonGuardar('k');
     }
-
-
-
-
-
-
     
 </script>
 </body>
