@@ -413,54 +413,27 @@
         }
     }
 
-    function inicializarMapa(idContenedor, lat, lon) {
+   function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
         return m;
     }
 
-// 🟢 FUNCIÓN CONTROLADORA DE PESTAÑAS (Con solución para visores de mapa)
-function cambiarPestana(pestana) {
-    // 1. Desactivar todos los botones de pestañas y activar el seleccionado
-    const botones = document.querySelectorAll('.tab-btn');
-    botones.forEach(btn => btn.classList.remove('active'));
-    
-    // Buscar el botón presionado por su atributo onclick o evento
-    if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+    function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
+        document.getElementById(`tab-${tipo}`).classList.add('active');
+        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
+        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
+        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
     }
 
-    // 2. Ocultar todos los contenedores de las pestañas
-    // (Asegúrate de que tus secciones tengan clases o IDs correspondientes)
-    const contenidos = document.querySelectorAll('.tab-content');
-    contenidos.forEach(c => c.style.display = 'none');
-
-    // 3. Mostrar la pestaña seleccionada
-    const tabSeleccionada = document.getElementById(`tab-${pestana}`);
-    if (tabSeleccionada) {
-        tabSeleccionada.style.display = 'block';
+    function mostrarError(modo, msg) {
+        let el = document.getElementById(modo + '_errorMsg');
+        el.innerText = msg;
+        el.style.display = 'block';
     }
-
-    // 🟢 4. REPARACIÓN DEL MAPA: Notificar a Leaflet para recalcular tamaño
-    // Se usa un retardo de 150ms para permitir que el navegador aplique 'display: block'
-    setTimeout(() => {
-        // Redibujar mapa de la pestaña "single" (EscxEsc)
-        if (pestana === 'single' && typeof mapSingle !== 'undefined' && mapSingle) {
-            mapSingle.invalidateSize();
-        }
-        
-        // Redibujar mapa de la pestaña "multi" (Ruta Múltiple)
-        if (pestana === 'multi' && typeof mapMulti !== 'undefined' && mapMulti) {
-            mapMulti.invalidateSize();
-        }
-
-        // Redibujar mapa de la pestaña "kml" (Mapa KML)
-        if (pestana === 'kml' && typeof mapKml !== 'undefined' && mapKml) {
-            mapKml.invalidateSize();
-        }
-    }, 150);
-}
-
 
 
     
