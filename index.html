@@ -319,32 +319,21 @@
         currentLayers[claveMapa] = obtenerCapaTile(estilo).addTo(mapa);
     }
 
-    function cambiarPestana(tipo) {
+
+function cambiarPestana(tipo) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        if(tipo === 'multi') {
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('tab-multi').classList.add('active');
-            if(mapMulti) mapMulti.invalidateSize();
-        } else if(tipo === 'single') {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.getElementById('tab-single').classList.add('active');
-            if(mapSingle) mapSingle.invalidateSize();
-        } else if(tipo === 'kml') {
-            document.querySelectorAll('.tab-btn')[2].classList.add('active');
-            document.getElementById('tab-kml').classList.add('active');
-            if(mapKml) mapKml.invalidateSize();
-        }
+        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
+        document.getElementById(`tab-${tipo}`).classList.add('active');
+        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
+        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
+        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
     }
 
-
-
-
-
-
-
-
+    function mostrarError(modo, msg) {
+        let el = document.getElementById(modo + '_errorMsg');
+        el.innerText = msg;
+        el.style.display = 'block';
 
     
 
