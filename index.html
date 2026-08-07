@@ -244,6 +244,110 @@
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
 
+
+    // Almacena las capas actuales de cada mapa para permitir cambios dinámicos
+    let currentLayers = { multi: null, single: null, kml: null };
+
+    function obtenerCapaTile(estilo) {
+        if (estilo === 'osm') {
+            return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+        } else if (estilo === 'light') {
+            return L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                attribution: '&copy; CARTO'
+            });
+        } else {
+            // Por defecto: Satelital (Esri World Imagery)
+            return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-eGIS, and GIS User Community'
+            });
+        }
+    }
+
+    function inicializarMapaSiNoExiste(idContenedor, claveMapa, lat, lon) {
+        let mapa = null;
+        let selectEstilo = document.getElementById(claveMapa + '_mapStyle');
+        let estiloSeleccionado = selectEstilo ? selectEstilo.value : 'satellite';
+
+        if (claveMapa === 'multi') {
+            if (!mapMulti) {
+                mapMulti = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.multi = obtenerCapaTile(estiloSeleccionado).addTo(mapMulti);
+            } else {
+                mapMulti.setView([lat, lon], 13);
+                mapMulti.invalidateSize();
+            }
+            mapa = mapMulti;
+        } else if (claveMapa === 'single') {
+            if (!mapSingle) {
+                mapSingle = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.single = obtenerCapaTile(estiloSeleccionado).addTo(mapSingle);
+            } else {
+                mapSingle.setView([lat, lon], 13);
+                mapSingle.invalidateSize();
+            }
+            mapa = mapSingle;
+        } else if (claveMapa === 'kml') {
+            if (!mapKml) {
+                mapKml = L.map(idContenedor).setView([lat, lon], 13);
+                currentLayers.kml = obtenerCapaTile(estiloSeleccionado).addTo(mapKml);
+            } else {
+                mapKml.setView([lat, lon], 13);
+                mapKml.invalidateSize();
+            }
+            mapa = mapKml;
+        }
+        return mapa;
+    }
+
+    function cambiarCapaMapa(claveMapa, estilo) {
+        let mapa = null;
+        if (claveMapa === 'multi') mapa = mapMulti;
+        if (claveMapa === 'single') mapa = mapSingle;
+        if (claveMapa === 'kml') mapa = mapKml;
+
+        if (!mapa) return;
+
+        if (currentLayers[claveMapa]) {
+            mapa.removeLayer(currentLayers[claveMapa]);
+        }
+
+        currentLayers[claveMapa] = obtenerCapaTile(estilo).addTo(mapa);
+    }
+
+    function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        if(tipo === 'multi') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-multi').classList.add('active');
+            if(mapMulti) mapMulti.invalidateSize();
+        } else if(tipo === 'single') {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-single').classList.add('active');
+            if(mapSingle) mapSingle.invalidateSize();
+        } else if(tipo === 'kml') {
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.getElementById('tab-kml').classList.add('active');
+            if(mapKml) mapKml.invalidateSize();
+        }
+    }
+
+
+
+
+
+
+
+
+
+    
+
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
@@ -340,6 +444,9 @@
         }
     }
 
+
+
+    
     async function cargarDetalleProceso(procesoNombre) {
         if(!procesoNombre) return;
         document.getElementById('loader-consulta').style.display = 'block';
