@@ -188,29 +188,28 @@
         </div>
     </div>
 
-    <!-- CÓDIGO A AGREGAR DENTRO DE LA TARJETA / CONTENEDOR DE LA RUTA -->
-<div class="ruta-card border rounded p-3 mb-3 shadow-sm">
-  <!-- Cabecera de la ruta (Resumen) -->
-  <div class="d-flex justify-content-between align-items-center">
-    <div>
-      <h5 class="m-0">Ruta <span class="ruta-index">#1</span></h5>
-      <small class="text-muted">Distancia: <b class="ruta-distancia">0 km</b> | Tiempo: <b class="ruta-tiempo">0 min</b></small>
-    </div>
-    
-    <!-- 🟢 1. BOTÓN PARA DESPLEGAR/OCULTAR -->
-    <button class="btn btn-sm btn-outline-primary toggle-ruta-btn" onclick="toggleDetalleRuta('detalle-ruta-1')">
-      Ver detalle ▼
-    </button>
-  </div>
 
-  <!-- 🟢 2. CONTENEDOR DESPLEGABLE (Oculto por defecto con display: none) -->
-  <div id="detalle-ruta-1" class="detalle-ruta-container mt-3 pt-3 border-top" style="display: none;">
-    <h6>Paradas y Puntos de Paso:</h6>
-    <ul class="list-group list-group-flush lista-paradas">
-      <!-- Aquí se insertan dinámicamente los puntos o instrucciones de OSRM -->
-    </ul>
-  </div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle shadow-sm border">
+    <thead class="table-light">
+      <tr>
+        <th># Ruta</th>
+        <th>Destino / Tramos</th>
+        <th>Distancia</th>
+        <th>Tiempo Est.</th>
+        <th class="text-end">Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-rutas-multiples-body">
+      <!-- Las filas se insertan dinámicamente con JS -->
+    </tbody>
+  </table>
 </div>
+
+
+
+    
 
     <!-- MODO 3: MAPA KML -->
     <div id="tab-kml" class="tab-content">
@@ -652,6 +651,79 @@
         };
         renderizarBotonGuardar('k');
     }
+
+
+
+
+    /**
+ * Renderiza la tabla de múltiples destinos con botones desplegables por fila.
+ * @param {Array} rutas - Arreglo de rutas devuelto por OSRM (data.routes)
+ */
+function renderizarTablaRutasMultiples(rutas) {
+  const tbody = document.getElementById('tabla-rutas-multiples-body');
+  tbody.innerHTML = ''; // Limpiar tabla previa
+
+  if (!rutas || rutas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay rutas calculadas.</td></tr>';
+    return;
+  }
+
+  rutas.forEach((ruta, index) => {
+    const idDetalle = `detalle-fila-ruta-${index}`;
+    const distanciaKm = (ruta.distance / 1000).toFixed(2);
+    const tiempoMin = Math.round(ruta.duration / 60);
+
+    // Generar el desglose de tramos (legs) de la ruta
+    const tramosHTML = ruta.legs ? ruta.legs.map((leg, legIdx) => `
+      <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+        <span><i class="bi bi-geo-alt me-1"></i><b>Tramo ${legIdx + 1}:</b> ${leg.summary || 'Vía principal'}</span>
+        <span class="badge bg-light text-dark border">
+          ${(leg.distance / 1000).toFixed(2)} km - ${Math.round(leg.duration / 60)} min
+        </span>
+      </div>
+    `).join('') : '<p class="text-muted m-0">Sin información de tramos.</p>';
+
+    // 1. Fila Principal de la Ruta
+    const filaPrincipal = document.createElement('tr');
+    filaPrincipal.innerHTML = `
+      <td><span class="fw-bold">Ruta #${index + 1}</span></td>
+      <td>${ruta.legs ? ruta.legs.length : 1} tramos</td>
+      <td><span class="badge bg-success fs-6">${distanciaKm} km</span></td>
+      <td><span class="badge bg-info text-dark fs-6">${tiempoMin} min</span></td>
+      <td class="text-end">
+        <!-- 🟢 BOTÓN DESPLEGABLE POR RUTA -->
+        <button class="btn btn-sm btn-outline-primary" onclick="toggleFilaDetalle('${idDetalle}', this)">
+          Ver detalle ▼
+        </button>
+      </td>
+    `;
+
+    // 2. Fila Desplegable (Oculta por defecto)
+    const filaDesplegable = document.createElement('tr');
+    filaDesplegable.id = idDetalle;
+    filaDesplegable.style.display = 'none'; // Estado inicial oculto
+    filaDesplegable.className = 'table-light';
+    filaDesplegable.innerHTML = `
+      <td colspan="5" class="p-3">
+        <div class="bg-white p-3 rounded border shadow-sm">
+          <h6 class="fw-bold mb-3 text-primary">Desglose de Tramos - Ruta #${index + 1}</h6>
+          ${tramosHTML}
+        </div>
+      </td>
+    `;
+
+    // Agregar ambas filas a la tabla
+    tbody.appendChild(filaPrincipal);
+    tbody.appendChild(filaDesplegable);
+  });
+}
+
+
+
+
+
+
+    
 </script>
 </body>
 </html>
