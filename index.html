@@ -415,14 +415,21 @@ async function enviarABitacora() {
     }
 
 function cambiarPestana(tipo) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
-        document.getElementById(`tab-${tipo}`).classList.add('active');
+    // 1. Quitar clases activas
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    // 2. Poner clases activas a la pestaña seleccionada
+    document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
+    document.getElementById(`tab-${tipo}`).classList.add('active');
+    
+    // 3. Forzar recalculo de Leaflet CON UN PEQUEÑO RETRASO (Delay)
+    setTimeout(() => {
         if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
         if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
         if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
-    }
+    }, 200); // 200 milisegundos son perfectos para que el DOM se actualice
+}
 
     function mostrarError(modo, msg) {
         let el = document.getElementById(modo + '_errorMsg');
