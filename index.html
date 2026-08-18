@@ -415,22 +415,26 @@ async function enviarABitacora() {
     }
 
 function cambiarPestana(tipo) {
-    // 1. Quitar clases activas
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     
-    // 2. Poner clases activas a la pestaña seleccionada
-    document.querySelectorAll('.tab-btn')[['multi','single','kml'].indexOf(tipo)].classList.add('active');
-    document.getElementById(`tab-${tipo}`).classList.add('active');
-    
-    // 3. Forzar recalculo de Leaflet CON UN PEQUEÑO RETRASO (Delay)
-    setTimeout(() => {
-        if(tipo === 'multi' && mapMulti) mapMulti.invalidateSize();
-        if(tipo === 'single' && mapSingle) mapSingle.invalidateSize();
-        if(tipo === 'kml' && mapKml) mapKml.invalidateSize();
-    }, 200); // 200 milisegundos son perfectos para que el DOM se actualice
+    if(tipo === 'multi') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tab-multi').classList.add('active');
+        // ESTA ES LA LÍNEA CLAVE PARA LA PESTAÑA 1
+        if(mapMulti) mapMulti.invalidateSize(); 
+    } else if(tipo === 'single') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tab-single').classList.add('active');
+        // ESTA ES LA LÍNEA CLAVE PARA LA PESTAÑA 2
+        if(mapSingle) mapSingle.invalidateSize(); 
+    } else if(tipo === 'kml') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('tab-kml').classList.add('active');
+        // ESTA ES LA LÍNEA CLAVE PARA LA PESTAÑA 3
+        if(mapKml) mapKml.invalidateSize(); 
+    }
 }
-
     function mostrarError(modo, msg) {
         let el = document.getElementById(modo + '_errorMsg');
         el.innerText = msg;
