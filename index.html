@@ -125,7 +125,7 @@
         </div>
         <div class="form-group">
             <div id="m_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores en Base Masiva</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores en Base</button>
             </div>
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
@@ -169,7 +169,7 @@
         </div>
         <div class="form-group">
             <div id="s_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores en Base Masiva</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores en Base</button>
             </div>
             <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte"></textarea>
         </div>
@@ -196,11 +196,11 @@
         <h2>Generador de Puntos KML</h2>
         <div class="checkbox-group">
             <label><input type="radio" name="k_tipo" value="manual" checked onchange="toggleBD('k')"> Ingreso Manual</label>
-            <label><input type="radio" name="k_tipo" value="db" onchange="toggleBD('k')"> Buscar ID en BD (+500k Reg)</label>
+            <label><input type="radio" name="k_tipo" value="db" onchange="toggleBD('k')"> Buscar ID en BD</label>
         </div>
         <div class="form-group">
             <div id="k_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores en Base Masiva</button>
+                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores en Base</button>
             </div>
             <label>Formato: Latitud, Longitud, Nombre, Desc1, Desc2, Desc3, Color</label>
             <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona N, Dir Juan, Mat, red"></textarea>
@@ -245,7 +245,7 @@
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
         document.getElementById('panel-consulta').style.display = (val === 'consulta') ? 'block' : 'none';
-        document.getElementById('app-container').style.display = 'none';
+        document.getElementById('app-container').style.display = (val === 'container') ? 'block' :'none';
         
         if (val === 'libre') {
             estadoActual = 'libre';
