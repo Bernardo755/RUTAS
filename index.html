@@ -174,6 +174,11 @@
             <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte"></textarea>
         </div>
 
+        <div class="checkbox-group" style="background: #e8f0fe; color: #1967d2; border:none;">
+            <input type="checkbox" id="m_regreso" style="width: 20px; height: 20px;">
+            <label for="m_regreso" style="margin: 0;">¿Agregar regreso al punto de partida al final?</label>
+        </div>
+
         <button class="action-btn" onclick="procesarRutaMasivaPuntoAPunto()">Calcular Distancias Individuales</button>
         <div id="s_loader" class="loader">Calculando... ⏳</div>
         <div id="s_errorMsg" class="error"></div>
@@ -272,7 +277,7 @@
         document.getElementById(`${modo}_btn_bd`).style.display = isDB ? 'block' : 'none';
         let txt = document.getElementById(modo === 'm' ? 'm_waypoints' : (modo === 's' ? 's_destinos' : 'k_datos'));
         txt.placeholder = isDB 
-            ? "Ingresa aquí los ID a buscar en la Base Masiva (uno por línea)..." 
+            ? "Ingresa aquí los ID a buscar en la Base (uno por línea)..." 
             : "Formato manual (Latitud, Longitud, Nombre...)";
     }
 
@@ -302,7 +307,7 @@
                 alert(`¡Se encontraron ${result.data.length} coincidencias!\nLos datos se han insertado correctamente.`);
                 document.querySelector(`input[name="${modo}_tipo"][value="manual"]`).click();
             } else {
-                alert("No se encontraron coincidencias en los registros masivos.");
+                alert("No se encontraron coincidencias en los registros.");
             }
         } catch (error) {
             console.error(error);
@@ -337,9 +342,6 @@
         }
     }
 
-
-
-    
     async function cargarDetalleProceso(procesoNombre) {
         if(!procesoNombre) return;
         document.getElementById('loader-consulta').style.display = 'block';
