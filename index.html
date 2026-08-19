@@ -176,7 +176,7 @@
 
         <div class="checkbox-group" style="background: #e8f0fe; color: #1967d2; border:none;">
             <input type="checkbox" id="m_regreso" style="width: 20px; height: 20px;">
-            <label for="m_regreso" style="margin: 0;">¿Agregar regreso al punto de partida al final?</label>
+            <label for="s_regreso" style="margin: 0;">¿Agregar regreso al punto de partida al final?</label>
         </div>
 
         <button class="action-btn" onclick="procesarRutaMasivaPuntoAPunto()">Calcular Distancias Individuales</button>
@@ -455,79 +455,9 @@ function cambiarPestana(tipo) {
         return url;
     }
 
-    async function procesarRutaMultiple() {
-        document.getElementById('m_errorMsg').style.display = 'none';
-        document.getElementById('m_resultados').style.display = 'none';
-        document.getElementById('m_loader').style.display = 'block';
 
-        const oLat = parseFloat(document.getElementById('m_origenLat').value.replace(',', '.'));
-        const oLon = parseFloat(document.getElementById('m_origenLon').value.replace(',', '.'));
-        if (isNaN(oLat) || isNaN(oLon)) { mostrarError('m', "Coordenadas de origen no válidas."); document.getElementById('m_loader').style.display = 'none'; return; }
 
-        let puntos = [{ lat: oLat, lon: oLon, nombre: document.getElementById('m_nombreOrigen').value.trim() || 'Origen' }];
-        const lineas = document.getElementById('m_waypoints').value.trim().split('\n');
-        
-        lineas.forEach((linea, idx) => {
-            const p = linea.split(/,|\t/).map(x => x.trim());
-            if(p.length >= 2) puntos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Parada ${idx+1}` });
-        });
 
-        if (document.getElementById('m_regreso').checked) puntos.push({ lat: oLat, lon: oLon, nombre: 'Regreso a Origen' });
-        if (puntos.length < 2) { mostrarError('m', "Puntos insuficientes."); document.getElementById('m_loader').style.display = 'none'; return; }
-
-        let coordsString = puntos.map(p => `${p.lon},${p.lat}`).join(';');
-        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
-
-        try {
-            let res = await fetch(urlOSRM);
-            let data = await res.json();
-            if (data.code !== 'Ok') throw new Error();
-
-            let route = data.routes[0];
-            let tbody = document.getElementById('m_tablaBody'); tbody.innerHTML = '';
-            tbody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].nombre}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
-
-            route.legs.forEach((leg, i) => {
-                tbody.innerHTML += `<tr><td>${i+1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color:#1a73e8; font-weight:bold;">${(leg.distance/1000).toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(leg.duration/60)} min</td></tr>`;
-            });
-
-            let distTotalKm = (route.distance/1000).toFixed(2);
-            let tiempoMin = Math.round(route.duration/60);
-
-            document.getElementById('m_totalDistancia').innerHTML = `Total: ${distTotalKm} km | Tiempo: ${tiempoMin} min`;
-            
-            // Generar Link a Google Maps
-            let linkMaps = generarGoogleMapsUrl(puntos);
-            document.getElementById('m_contenedorLinks').innerHTML = `<a href="${linkMaps}" target="_blank" class="btn-link">🗺️ Abrir Ruta Múltiple en Google Maps</a>`;
-
-            document.getElementById('m_resultados').style.display = 'block';
-
-            if (!mapMulti) mapMulti = inicializarMapa('map', oLat, oLon);
-            if (routeLayerMulti) mapMulti.removeLayer(routeLayerMulti);
-            markersMulti.forEach(m => mapMulti.removeLayer(m)); markersMulti = [];
-
-            let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5 }).addTo(mapMulti);
-            mapMulti.fitBounds(routeLayerMulti.getBounds(), { padding: [30, 30] });
-
-            puntos.forEach((p, i) => {
-                let m = L.marker([p.lat, p.lon]).addTo(mapMulti).bindPopup(`<b>${i}. ${p.nombre}</b>`);
-                markersMulti.push(m);
-            });
-
-            // Asignar datos temporales para bitácora
-            tempDatosGuardar = { 
-                modoApp: 'Ruta Múltiple', 
-                resumen: `Distancia: ${distTotalKm} km | Paradas: ${puntos.length}`,
-                linkRuta: linkMaps,
-                datos: { distanciaGlobal: distTotalKm, paradas: puntos.length, puntosRecorridos: puntos.map(p=>p.nombre) } 
-            };
-            renderizarBotonGuardar('m');
-
-        } catch(e) {
-            mostrarError('m', "Error al calcular la ruta con OSRM.");
-        } finally { document.getElementById('m_loader').style.display = 'none'; }
-    }
 
     
 // --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
@@ -540,13 +470,28 @@ async function procesarRutaMasivaPuntoAPunto() {
     const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
     if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); return; }
 
+    // 🟢 1. Verificamos si el checkbox de regreso está marcado
+    const incluirRegreso = document.getElementById('s_regreso') ? document.getElementById('s_regreso').checked : false;
+
     let destinos = [];
     document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
         let p = l.split(/,|\t/).map(x => x.trim());
         if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
     });
 
-    let promesas = destinos.map(d => fetch(`https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}?overview=full&geometries=geojson`).then(r => r.json()).then(data => ({ d, data })));
+    // 🟢 2. Modificamos la petición a OSRM para cada destino
+    let promesas = destinos.map(d => {
+        // Estructura base: Origen -> Destino
+        let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${oLon},${oLat};${d.lon},${d.lat}`;
+        
+        // Si hay regreso, añadimos el Origen de nuevo al final: Origen -> Destino -> Origen
+        if (incluirRegreso) {
+            urlOSRM += `;${oLon},${oLat}`; 
+        }
+        urlOSRM += `?overview=full&geometries=geojson`;
+        
+        return fetch(urlOSRM).then(r => r.json()).then(data => ({ d, data }));
+    });
 
     try {
         let resultados = await Promise.all(promesas);
@@ -561,19 +506,31 @@ async function procesarRutaMasivaPuntoAPunto() {
 
         resultados.forEach((item, idx) => {
             if(item.data.code === 'Ok') {
-                let r = item.data.routes[0].legs[0];
+                // 🟢 3. CRÍTICO: Tomar distance y duration de la ruta global (routes[0])
+                // Esto asegura que si hay regreso (2 legs), sume ida y vuelta correctamente.
+                let rutaCompleta = item.data.routes[0]; 
                 let d = item.d;
-                let km = r.distance/1000, mn = r.duration/60;
+                let km = rutaCompleta.distance / 1000;
+                let mn = rutaCompleta.duration / 60;
                 tDist += km; tTime += mn;
                 
-                // 🟢 1. Se genera la URL individual de Google Maps (Origen a Destino)
-                let linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
+                // 🟢 4. Generar URL de Google Maps adaptada al viaje redondo
+                let linkIndividualMaps = "";
+                if (incluirRegreso) {
+                    // Google Maps Viaje Redondo: Origen -> (Waypoint: Destino) -> Destino Final: Origen
+                    linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${oLat},${oLon}&waypoints=${d.lat},${d.lon}&travelmode=driving`;
+                } else {
+                    // Viaje sencillo
+                    linkIndividualMaps = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
+                }
 
-                // 🟢 2. Se agrega la columna "Ver Mapa" a cada fila de la tabla
+                // Añadir etiqueta "(Ida y Vuelta)" visualmente en la tabla si aplica
+                let etiquetaNombre = incluirRegreso ? `${d.nombre} <br><small class="text-muted">(Ida y Vuelta)</small>` : d.nombre;
+
                 tbody.innerHTML += `
                     <tr>
                         <td>${idx+1}</td>
-                        <td><strong>${d.nombre}</strong></td>
+                        <td style="line-height: 1.2;"><strong>${etiquetaNombre}</strong></td>
                         <td>${d.lat}</td>
                         <td>${d.lon}</td>
                         <td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td>
@@ -587,8 +544,9 @@ async function procesarRutaMasivaPuntoAPunto() {
                 
                 validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
                 bounds.push([d.lat, d.lon]);
-                markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
-                let poly = L.polyline(item.data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
+                markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`<b>${d.nombre}</b><br>Total: ${km.toFixed(2)}km`));
+                
+                let poly = L.polyline(rutaCompleta.geometry.coordinates.map(c=>[c[1],c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
                 routeLayerSingle.push(poly);
             }
         });
@@ -597,22 +555,30 @@ async function procesarRutaMasivaPuntoAPunto() {
         let sumaKm = tDist.toFixed(2);
         document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
 
-        // 🟢 3. Se limpia el contenedor de enlaces general (ya que ahora están en la tabla)
         document.getElementById('s_contenedorLinks').innerHTML = '';
-
         document.getElementById('s_resultados').style.display = 'block';
 
         tempDatosGuardar = { 
             modoApp: 'Múltiples Destinos', 
-            resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km`,
+            resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km ${incluirRegreso ? '(Viajes Redondos)' : ''}`,
             linkRuta: 'Ver enlaces individuales en la tabla',
-            datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | ') } 
+            datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | '), viajeRedondo: incluirRegreso } 
         };
         renderizarBotonGuardar('s');
 
-    } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
+    } catch(e) { 
+        mostrarError('s', "Error al calcular distancias en OSRM."); 
+    } 
     finally { document.getElementById('s_loader').style.display = 'none'; }
 }
+
+
+
+
+
+
+
+    
 
     
 
