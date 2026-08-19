@@ -290,7 +290,7 @@
         }
 
         document.getElementById(modo+'_loader').style.display = 'block';
-        document.getElementById(modo+'_loader').innerText = "Buscando en registros masivos... ⏳";
+        document.getElementById(modo+'_loader').innerText = "Buscando en registros... ⏳";
         
         try {
             let url = SCRIPT_URL + "?action=searchDB&queries=" + encodeURIComponent(JSON.stringify(queries));
@@ -380,35 +380,53 @@
         }
     }
 
+
 async function enviarABitacora() {
     if(!tempDatosGuardar || !procesoActivo) return;
-        
-        let payload = {
-            proceso: procesoActivo,
-            subproceso: subprocesoActivo,
-            modo: tempDatosGuardar.modoApp,
-            resumen: tempDatosGuardar.resumen,
-            linkRuta: tempDatosGuardar.linkRuta,
-            datosJSON: JSON.stringify(tempDatosGuardar.datos)
-        };
-        
-        try {
+
+    // 🟢 Si es un objeto individual (Módulo 1) lo envuelve en un arreglo; si ya es arreglo (Módulo 2) lo mantiene
+    let listaAEnviar = Array.isArray(tempDatosGuardar) ? tempDatosGuardar : [tempDatosGuardar];
+
+    if (listaAEnviar.length === 0) return;
+
+    try {
+        // 🟢 Generar una petición HTTP independiente por cada punto/destino
+        let promesasEnvio = listaAEnviar.map(item => {
+            let payload = {
+                proceso: procesoActivo,
+                subproceso: subprocesoActivo,
+                modo: item.modoApp,
+                resumen: item.resumen,
+                linkRuta: item.linkRuta,
+                datosJSON: JSON.stringify(item.datos)
+            };
+
             let formData = new URLSearchParams();
             formData.append('action', 'saveBitacora');
             formData.append('payload', JSON.stringify(payload));
 
-            await fetch(SCRIPT_URL, {
+            return fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             });
-            alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nLink de la ruta enlazado correctamente.`);
-        } catch(e) {
-            alert("Error al guardar en la bitácora.");
-            console.error(e);
-        }
+        });
+
+        // Esperar a que se envíen todos los registros
+        await Promise.all(promesasEnvio);
+
+        alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nSe registraron ${listaAEnviar.length} punto(s) de forma independiente en la bitácora.`);
+    } catch(e) {
+        alert("Error al guardar en la bitácora.");
+        console.error(e);
     }
+}
+
+
+
+
+    
 
    function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
@@ -455,12 +473,7 @@ function cambiarPestana(tipo) {
         return url;
     }
 
-
-
-
-
-    
-// --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
+// --- MODO 1: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
 async function procesarRutaMultiple() {
 
         document.getElementById('m_errorMsg').style.display = 'none';
@@ -518,11 +531,12 @@ async function procesarRutaMultiple() {
             };
             renderizarBotonGuardar('m');
         } catch(e) {
-            mostrarError('m', "Error al calcular la ruta con OSRM.");
+            mostrarError('m', "Error al calcular la ruta.");
         } finally { document.getElementById('m_loader').style.display = 'none'; }
     }
 
 
+// --- MODO 2: RUTA ORIGEN A UN DESTINO ---
 // --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
 async function procesarRutaMasivaPuntoAPunto() {
     document.getElementById('s_errorMsg').style.display = 'none';
@@ -533,7 +547,6 @@ async function procesarRutaMasivaPuntoAPunto() {
     const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
     if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); document.getElementById('s_loader').style.display = 'none'; return; }
 
-    // 1. Verificar estado del checkbox de regreso
     const incluirRegreso = document.getElementById('s_regreso') ? document.getElementById('s_regreso').checked : false;
 
     let destinos = [];
@@ -542,7 +555,6 @@ async function procesarRutaMasivaPuntoAPunto() {
         if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
     });
 
-    // 2. Definir si la coordenada de Origen se añade al final
     let promesas = destinos.map(d => {
         let coordsString = incluirRegreso 
             ? `${oLon},${oLat};${d.lon},${d.lat};${oLon},${oLat}`
@@ -556,7 +568,10 @@ async function procesarRutaMasivaPuntoAPunto() {
     try {
         let resultados = await Promise.all(promesas);
         let tbody = document.getElementById('s_tablaBody'); tbody.innerHTML = '';
-        let tDist = 0, tTime = 0, validosGuardar = [];
+        let tDist = 0, tTime = 0;
+        
+        // 🟢 Estructura para almacenar cada ruta punto por punto de forma individual
+        let listaRegistrosGuardar = [];
 
         if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
         routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
@@ -566,14 +581,12 @@ async function procesarRutaMasivaPuntoAPunto() {
 
         resultados.forEach((item, idx) => {
             if(item.data.code === 'Ok') {
-                // 3. Tomar el objeto ruta completo en lugar de solo legs[0]
                 let route = item.data.routes[0];
                 let d = item.d;
                 let km = route.distance / 1000;
                 let mn = route.duration / 60;
                 tDist += km; tTime += mn;
                 
-                // 4. Armar la URL de Google Maps según corresponda
                 let linkIndividualMaps = incluirRegreso
                     ? `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${oLat},${oLon}&waypoints=${d.lat},${d.lon}&travelmode=driving`
                     : `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
@@ -593,13 +606,26 @@ async function procesarRutaMasivaPuntoAPunto() {
                         </td>
                     </tr>`;
                 
-                validosGuardar.push(`${d.nombre} (${km.toFixed(1)}km)`);
                 bounds.push([d.lat, d.lon]);
                 markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
                 
-                // 5. La polínea trazará automáticamente ida y regreso en Leaflet
                 let poly = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
                 routeLayerSingle.push(poly);
+
+                // 🟢 Se genera el objeto individual para la bitácora
+                listaRegistrosGuardar.push({
+                    modoApp: 'Múltiples Destinos',
+                    resumen: `Destino: ${d.nombre} | Distancia: ${km.toFixed(2)} km | Tiempo: ${Math.round(mn)} min${incluirRegreso ? ' (Ida y vuelta)' : ''}`,
+                    linkRuta: linkIndividualMaps,
+                    datos: {
+                        destino: d.nombre,
+                        latitud: d.lat,
+                        longitud: d.lon,
+                        distanciaKm: km.toFixed(2),
+                        tiempoMin: Math.round(mn),
+                        viajeRedondo: incluirRegreso
+                    }
+                });
             }
         });
 
@@ -610,15 +636,11 @@ async function procesarRutaMasivaPuntoAPunto() {
         document.getElementById('s_contenedorLinks').innerHTML = '';
         document.getElementById('s_resultados').style.display = 'block';
 
-        tempDatosGuardar = { 
-            modoApp: 'Múltiples Destinos', 
-            resumen: `Destinos: ${validosGuardar.length} | Suma Distancia: ${sumaKm} km${incluirRegreso ? ' (Con regreso)' : ''}`,
-            linkRuta: 'Ver enlaces individuales en la tabla',
-            datos: { destinosCalculados: validosGuardar.length, sumaDistancia: sumaKm, listadoDestinos: validosGuardar.join(' | ') } 
-        };
+        // 🟢 Asignamos el arreglo completo de registros a la variable temporal
+        tempDatosGuardar = listaRegistrosGuardar;
         renderizarBotonGuardar('s');
 
-    } catch(e) { mostrarError('s', "Error al calcular distancias en OSRM."); } 
+    } catch(e) { mostrarError('s', "Error al calcular distancias."); } 
     finally { document.getElementById('s_loader').style.display = 'none'; }
 }
 
