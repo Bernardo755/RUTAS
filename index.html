@@ -646,13 +646,7 @@ async function procesarRutaMasivaPuntoAPunto() {
 
 
 
-
-    
-    
-
-    
-
-   function procesarKML() {
+function procesarKML() {
     document.getElementById('k_errorMsg').style.display = 'none';
     document.getElementById('k_resultados').style.display = 'none';
 
@@ -661,32 +655,47 @@ async function procesarRutaMasivaPuntoAPunto() {
     let tbody = document.getElementById('k_tablaBody'); 
     tbody.innerHTML = '';
 
-    // Función auxiliar para obtener las URLs de los iconos según el color
-    function obtenerIconos(colorInput) {
-        let color = (colorInput || 'blue').toLowerCase().trim();
-        
-        // Diccionario por si el usuario escribe en español
-        const traductor = {
-            'rojo': 'red', 'azul': 'blue', 'verde': 'green', 'amarillo': 'yellow',
-            'morado': 'violet', 'naranja': 'orange', 'gris': 'grey', 'negro': 'black'
-        };
-        color = traductor[color] || color;
+    // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
+    const mapaColores = {
+        'rojo':     { hex: '#e74c3c', abgr: 'ff3c4ce7' },
+        'red':      { hex: '#e74c3c', abgr: 'ff3c4ce7' },
+        'azul':     { hex: '#3498db', abgr: 'ffdb9834' },
+        'blue':     { hex: '#3498db', abgr: 'ffdb9834' },
+        'verde':    { hex: '#2ecc71', abgr: 'ff71cc2e' },
+        'green':    { hex: '#2ecc71', abgr: 'ff71cc2e' },
+        'amarillo': { hex: '#f1c40f', abgr: 'ff0fc4f1' },
+        'yellow':   { hex: '#f1c40f', abgr: 'ff0fc4f1' },
+        'naranja':  { hex: '#e67e22', abgr: 'ff227ee6' },
+        'orange':   { hex: '#e67e22', abgr: 'ff227ee6' },
+        'morado':   { hex: '#9b59b6', abgr: 'ffb6599b' },
+        'purple':   { hex: '#9b59b6', abgr: 'ffb6599b' },
+        'violeta':  { hex: '#9b59b6', abgr: 'ffb6599b' },
+        'negro':    { hex: '#2c3e50', abgr: 'ff503e2c' },
+        'black':    { hex: '#2c3e50', abgr: 'ff503e2c' },
+        'gris':     { hex: '#95a5a6', abgr: 'ffa6a595' },
+        'grey':     { hex: '#95a5a6', abgr: 'ffa6a595' }
+    };
 
-        // Validar para Leaflet (librería externa gratuita de pines de colores)
-        const coloresLeaflet = ['red', 'blue', 'green', 'yellow', 'violet', 'orange', 'grey', 'black'];
-        let colorLeaflet = coloresLeaflet.includes(color) ? color : 'blue';
+    function obtenerColor(input) {
+        let key = (input || 'azul').toLowerCase().trim();
+        return mapaColores[key] || mapaColores['azul'];
+    }
 
-        // Validar para KML (Iconos de Google Earth/Maps)
-        const coloresKml = {
-            'red': 'red', 'blue': 'blue', 'green': 'green', 'yellow': 'yellow',
-            'violet': 'purple', 'orange': 'orange', 'grey': 'ylw', 'black': 'ylw'
-        };
-        let colorKml = coloresKml[colorLeaflet] || 'blue';
+    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
+    function crearIconoSVG(colorHex) {
+        let svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24c0-6.63-5.37-12-12-12z" fill="${colorHex}" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="12" cy="12" r="4" fill="#ffffff"/>
+        </svg>`;
 
-        return {
-            leaflet: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colorLeaflet}.png`,
-            kml: `http://maps.google.com/mapfiles/ms/icons/${colorKml}-pushpin.png`
-        };
+        return L.divIcon({
+            html: svg,
+            className: '',
+            iconSize: [30, 42],
+            iconAnchor: [15, 42],
+            popupAnchor: [0, -36]
+        });
     }
 
     lineas.forEach((l, i) => {
@@ -699,7 +708,7 @@ async function procesarRutaMasivaPuntoAPunto() {
                 d1: p[3]||'', 
                 d2: p[4]||'', 
                 d3: p[5]||'', 
-                col: p[6]||'blue' 
+                col: p[6]||'azul' 
             };
             puntos.push(obj);
             tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
@@ -708,20 +717,22 @@ async function procesarRutaMasivaPuntoAPunto() {
 
     if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
 
-    // Generar KML con el color aplicado
+    // Generar KML usando la etiqueta <color> nativa de Google Earth
     let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     ${puntos.map(p => {
-        let iconos = obtenerIconos(p.col);
+        let colorObj = obtenerColor(p.col);
         return `
     <Placemark>
       <name>${p.nom}</name>
       <description>${p.d1} - ${p.d2} - ${p.d3}</description>
       <Style>
         <IconStyle>
+          <color>${colorObj.abgr}</color>
+          <scale>1.1</scale>
           <Icon>
-            <href>${iconos.kml}</href>
+            <href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href>
           </Icon>
         </IconStyle>
       </Style>
@@ -737,21 +748,12 @@ async function procesarRutaMasivaPuntoAPunto() {
     if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
     let bounds = [];
     
-    // Generar marcadores en el mapa con el color aplicado
+    // Renderizar pines SVG en el mapa
     puntos.forEach(p => {
         bounds.push([p.lat, p.lon]);
-        
-        let iconos = obtenerIconos(p.col);
-        let iconoPersonalizado = L.icon({
-            iconUrl: iconos.leaflet,
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
+        let colorObj = obtenerColor(p.col);
 
-        L.marker([p.lat, p.lon], { icon: iconoPersonalizado })
+        L.marker([p.lat, p.lon], { icon: crearIconoSVG(colorObj.hex) })
          .addTo(mapKml)
          .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
     });
@@ -767,6 +769,12 @@ async function procesarRutaMasivaPuntoAPunto() {
     };
     renderizarBotonGuardar('k');
 }
+    
+    
+
+    
+
+  
     
 </script>
 </body>
