@@ -745,21 +745,32 @@ function procesarKML() {
     let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
     document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
 
-    if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
-    let bounds = [];
-    
-    // Renderizar pines SVG en el mapa
-    puntos.forEach(p => {
-        bounds.push([p.lat, p.lon]);
-        let colorObj = obtenerColor(p.col);
-
-        L.marker([p.lat, p.lon], { icon: crearIconoSVG(colorObj.hex) })
-         .addTo(mapKml)
-         .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
-    });
-    mapKml.fitBounds(bounds, { padding: [30, 30] });
-
+    // =========================================================================
+    // CAMBIO AQUÍ: Primero hacemos VISIBLE el contenedor de los resultados
+    // =========================================================================
     document.getElementById('k_resultados').style.display = 'block';
+
+    if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
+
+    // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
+    setTimeout(() => {
+        // Le ordenamos a Leaflet recalcular sus dimensiones
+        mapKml.invalidateSize();
+
+        let bounds = [];
+        
+        // Renderizar pines SVG en el mapa
+        puntos.forEach(p => {
+            bounds.push([p.lat, p.lon]);
+            let colorObj = obtenerColor(p.col);
+
+            L.marker([p.lat, p.lon], { icon: crearIconoSVG(colorObj.hex) })
+             .addTo(mapKml)
+             .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
+        });
+
+        mapKml.fitBounds(bounds, { padding: [30, 30] });
+    }, 100);
 
     tempDatosGuardar = {
         modoApp: 'Mapa KML',
