@@ -423,11 +423,6 @@ async function enviarABitacora() {
     }
 }
 
-
-
-
-    
-
    function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
@@ -573,6 +568,11 @@ async function procesarRutaMasivaPuntoAPunto() {
         // 🟢 Estructura para almacenar cada ruta punto por punto de forma individual
         let listaRegistrosGuardar = [];
 
+        // =========================================================================
+        // CAMBIO AQUÍ: 1. PRIMERO HACEMOS VISIBLE EL CONTENEDOR DE RESULTADOS
+        // =========================================================================
+        document.getElementById('s_resultados').style.display = 'block';
+
         if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
         routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
         markersSingle.forEach(m => mapSingle.removeLayer(m)); markersSingle = [];
@@ -587,7 +587,7 @@ async function procesarRutaMasivaPuntoAPunto() {
                 let mn = route.duration / 60;
                 tDist += km; tTime += mn;
                 
-                let linkIndividualMaps = incluirRegreso
+                let linkIndividualMaps = incluirRegreso 
                     ? `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${oLat},${oLon}&waypoints=${d.lat},${d.lon}&travelmode=driving`
                     : `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
 
@@ -629,12 +629,18 @@ async function procesarRutaMasivaPuntoAPunto() {
             }
         });
 
-        mapSingle.fitBounds(bounds, { padding: [30, 30] });
+        // =========================================================================
+        // CAMBIO AQUÍ: 2. ESPERAMOS 100ms Y FORZAMOS EL RECALCULO DE LEAFLET
+        // =========================================================================
+        setTimeout(() => {
+            mapSingle.invalidateSize();
+            mapSingle.fitBounds(bounds, { padding: [30, 30] });
+        }, 100);
+
         let sumaKm = tDist.toFixed(2);
         document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
 
         document.getElementById('s_contenedorLinks').innerHTML = '';
-        document.getElementById('s_resultados').style.display = 'block';
 
         // 🟢 Asignamos el arreglo completo de registros a la variable temporal
         tempDatosGuardar = listaRegistrosGuardar;
