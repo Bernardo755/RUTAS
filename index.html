@@ -652,58 +652,121 @@ async function procesarRutaMasivaPuntoAPunto() {
 
     
 
-    function procesarKML() {
-        document.getElementById('k_errorMsg').style.display = 'none';
-        document.getElementById('k_resultados').style.display = 'none';
+   function procesarKML() {
+    document.getElementById('k_errorMsg').style.display = 'none';
+    document.getElementById('k_resultados').style.display = 'none';
 
-        let lineas = document.getElementById('k_datos').value.trim().split('\n');
-        let puntos = [];
-        let tbody = document.getElementById('k_tablaBody'); tbody.innerHTML = '';
+    let lineas = document.getElementById('k_datos').value.trim().split('\n');
+    let puntos = [];
+    let tbody = document.getElementById('k_tablaBody'); 
+    tbody.innerHTML = '';
 
-        lineas.forEach((l, i) => {
-            let p = l.split(/,|\t/).map(x => x.trim());
-            if(p.length >= 2 && !isNaN(p[0])) {
-                let obj = { lat: p[0], lon: p[1], nom: p[2]||'', d1: p[3]||'', d2: p[4]||'', d3: p[5]||'', col: p[6]||'blue' };
-                puntos.push(obj);
-                tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
-            }
-        });
+    // Función auxiliar para obtener las URLs de los iconos según el color
+    function obtenerIconos(colorInput) {
+        let color = (colorInput || 'blue').toLowerCase().trim();
+        
+        // Diccionario por si el usuario escribe en español
+        const traductor = {
+            'rojo': 'red', 'azul': 'blue', 'verde': 'green', 'amarillo': 'yellow',
+            'morado': 'violet', 'naranja': 'orange', 'gris': 'grey', 'negro': 'black'
+        };
+        color = traductor[color] || color;
 
-        if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
+        // Validar para Leaflet (librería externa gratuita de pines de colores)
+        const coloresLeaflet = ['red', 'blue', 'green', 'yellow', 'violet', 'orange', 'grey', 'black'];
+        let colorLeaflet = coloresLeaflet.includes(color) ? color : 'blue';
 
-        let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+        // Validar para KML (Iconos de Google Earth/Maps)
+        const coloresKml = {
+            'red': 'red', 'blue': 'blue', 'green': 'green', 'yellow': 'yellow',
+            'violet': 'purple', 'orange': 'orange', 'grey': 'ylw', 'black': 'ylw'
+        };
+        let colorKml = coloresKml[colorLeaflet] || 'blue';
+
+        return {
+            leaflet: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${colorLeaflet}.png`,
+            kml: `http://maps.google.com/mapfiles/ms/icons/${colorKml}-pushpin.png`
+        };
+    }
+
+    lineas.forEach((l, i) => {
+        let p = l.split(/,|\t/).map(x => x.trim());
+        if(p.length >= 2 && !isNaN(p[0])) {
+            let obj = { 
+                lat: p[0], 
+                lon: p[1], 
+                nom: p[2]||'', 
+                d1: p[3]||'', 
+                d2: p[4]||'', 
+                d3: p[5]||'', 
+                col: p[6]||'blue' 
+            };
+            puntos.push(obj);
+            tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
+        }
+    });
+
+    if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
+
+    // Generar KML con el color aplicado
+    let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    ${puntos.map(p => `
+    ${puntos.map(p => {
+        let iconos = obtenerIconos(p.col);
+        return `
     <Placemark>
       <name>${p.nom}</name>
       <description>${p.d1} - ${p.d2} - ${p.d3}</description>
+      <Style>
+        <IconStyle>
+          <Icon>
+            <href>${iconos.kml}</href>
+          </Icon>
+        </IconStyle>
+      </Style>
       <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>
-    </Placemark>`).join('')}
+    </Placemark>`;
+    }).join('')}
   </Document>
 </kml>`;
 
-        let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
-        document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
+    let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+    document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
 
-        if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
-        let bounds = [];
-        puntos.forEach(p => {
-            bounds.push([p.lat, p.lon]);
-            L.marker([p.lat, p.lon]).addTo(mapKml).bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
+    if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
+    let bounds = [];
+    
+    // Generar marcadores en el mapa con el color aplicado
+    puntos.forEach(p => {
+        bounds.push([p.lat, p.lon]);
+        
+        let iconos = obtenerIconos(p.col);
+        let iconoPersonalizado = L.icon({
+            iconUrl: iconos.leaflet,
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
         });
-        mapKml.fitBounds(bounds, { padding: [30, 30] });
 
-        document.getElementById('k_resultados').style.display = 'block';
+        L.marker([p.lat, p.lon], { icon: iconoPersonalizado })
+         .addTo(mapKml)
+         .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
+    });
+    mapKml.fitBounds(bounds, { padding: [30, 30] });
 
-        tempDatosGuardar = {
-            modoApp: 'Mapa KML',
-            resumen: `Puntos procesados en KML: ${puntos.length}`,
-            linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
-            datos: { totalPuntos: puntos.length }
-        };
-        renderizarBotonGuardar('k');
-    }
+    document.getElementById('k_resultados').style.display = 'block';
+
+    tempDatosGuardar = {
+        modoApp: 'Mapa KML',
+        resumen: `Puntos procesados en KML: ${puntos.length}`,
+        linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
+        datos: { totalPuntos: puntos.length }
+    };
+    renderizarBotonGuardar('k');
+}
     
 </script>
 </body>
