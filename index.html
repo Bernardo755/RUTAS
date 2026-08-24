@@ -656,12 +656,13 @@ function procesarKML() {
     document.getElementById('k_errorMsg').style.display = 'none';
     document.getElementById('k_resultados').style.display = 'none';
 
-    let lineas = document.getElementById('k_datos').value.trim().split('\n');
+    // 1. Capturamos el texto original crudo
+    let rawInput = document.getElementById('k_datos').value.trim();
+    let lineas = rawInput.split('\n');
     let puntos = [];
     let tbody = document.getElementById('k_tablaBody'); 
     tbody.innerHTML = '';
 
-    // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
     const mapaColores = {
         'rojo':     { hex: '#e74c3c', abgr: 'ff3c4ce7' },
         'red':      { hex: '#e74c3c', abgr: 'ff3c4ce7' },
@@ -687,7 +688,6 @@ function procesarKML() {
         return mapaColores[key] || mapaColores['azul'];
     }
 
-    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
     function crearIconoSVG(colorHex) {
         let svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
@@ -723,7 +723,6 @@ function procesarKML() {
 
     if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
 
-    // Generar KML usando la etiqueta <color> nativa de Google Earth
     let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
@@ -751,21 +750,14 @@ function procesarKML() {
     let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
     document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
 
-    // =========================================================================
-    // CAMBIO AQUÍ: Primero hacemos VISIBLE el contenedor de los resultados
-    // =========================================================================
     document.getElementById('k_resultados').style.display = 'block';
 
     if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
 
-    // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
     setTimeout(() => {
-        // Le ordenamos a Leaflet recalcular sus dimensiones
         mapKml.invalidateSize();
-
         let bounds = [];
         
-        // Renderizar pines SVG en el mapa
         puntos.forEach(p => {
             bounds.push([p.lat, p.lon]);
             let colorObj = obtenerColor(p.col);
@@ -778,15 +770,23 @@ function procesarKML() {
         mapKml.fitBounds(bounds, { padding: [30, 30] });
     }, 100);
 
+    // =========================================================================
+    // 2. EMPAQUETAR TEXTO PARA LA HOJA BITÁCORA
+    // Convertimos los saltos de línea reales en "||" para que no rompa las celdas
+    // =========================================================================
+    let textoParaHoja = rawInput.replace(/\n/g, '||');
+
     tempDatosGuardar = {
         modoApp: 'Mapa KML',
         resumen: `Puntos procesados en KML: ${puntos.length}`,
         linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
-        datos: { totalPuntos: puntos.length }
+        datos: { 
+            totalPuntos: puntos.length,
+            textoKML: textoParaHoja // Esta variable es la que enviarás a tu hoja bitácora
+        }
     };
     renderizarBotonGuardar('k');
 }
-    
     
 
     
