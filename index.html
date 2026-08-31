@@ -747,9 +747,20 @@ function procesarKML() {
     document.getElementById('k_resultados').style.display = 'block';
     if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
     // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
+// Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
     setTimeout(() => {
         // Le ordenamos a Leaflet recalcular sus dimensiones
         mapKml.invalidateSize();
+
+        // =========================================================================
+        // SOLUCIÓN: Limpiar los marcadores anteriores antes de agregar los nuevos
+        // =========================================================================
+        mapKml.eachLayer(function (layer) {
+            if (layer instanceof L.Marker) {
+                mapKml.removeLayer(layer);
+            }
+        });
+
         let bounds = [];
         // Renderizar pines SVG en el mapa
         puntos.forEach(p => {
