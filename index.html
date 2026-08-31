@@ -659,7 +659,11 @@ function procesarKML() {
     let puntos = [];
     let tbody = document.getElementById('k_tablaBody'); 
     tbody.innerHTML = '';
-    // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
+
+    // Colecciones para rastrear exactamente qué no se encontró
+    let registrosNoEncontrados = [];
+    let coloresNoEncontrados = new Set();
+
     const mapaColores = {
         'rojo':     { hex: '#e74c3c', abgr: 'ff3c4ce7' },
         'red':      { hex: '#e74c3c', abgr: 'ff3c4ce7' },
@@ -679,11 +683,15 @@ function procesarKML() {
         'gris':     { hex: '#95a5a6', abgr: 'ffa6a595' },
         'grey':     { hex: '#95a5a6', abgr: 'ffa6a595' }
     };
+
     function obtenerColor(input) {
         let key = (input || 'azul').toLowerCase().trim();
+        if (key && !mapaColores[key]) {
+            coloresNoEncontrados.add(input); // Guarda el nombre del color no hallado
+        }
         return mapaColores[key] || mapaColores['azul'];
     }
-    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
+
     function crearIconoSVG(colorHex) {
         let svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
@@ -692,29 +700,47 @@ function procesarKML() {
         </svg>`;
         return L.divIcon({
            html: svg,
-            className: '',
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
-            popupAnchor: [0, -36]
+           className: '',
+           iconSize: [30, 42],
+           iconAnchor: [15, 42],
+           popupAnchor: [0, -36]
         });
     }
+
     lineas.forEach((l, i) => {
+        if (!l.trim()) return; // Ignorar líneas vacías
         let p = l.split(/,|\t/).map(x => x.trim());
-        if(p.length >= 2 && !isNaN(p[0])) {
+        
+        // Identificador del registro (Nombre o Número de Línea)
+        let identificador = (p[2] && p[2] !== '') ? p[2] : `Línea ${i + 1}`;
+
+        if (p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1]) && p[0] !== '' && p[1] !== '') {
             let obj = { 
                 lat: p[0], 
                 lon: p[1], 
-                nom: p[2]||'', 
-                d1: p[3]||'', 
-                d2: p[4]||'', 
-                d3: p[5]||'', 
-                col: p[6]||'azul' 
+                nom: p[2] || '', 
+                d1: p[3] || '', 
+                d2: p[4] || '', 
+                d3: p[5] || '', 
+                col: p[6] || 'azul' 
             };
             puntos.push(obj);
             tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
+        } else {
+            // Guarda el valor o nombre específico que no pudo procesarse
+            registrosNoEncontrados.push(identificador);
         }
     });
-    if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
+
+    if (puntos.length === 0) { 
+        let errorMsg = "Sin puntos válidos.";
+        if (registrosNoEncontrados.length > 0) {
+            errorMsg += ` No se encontraron/procesaron: ${registrosNoEncontrados.join(', ')}`;
+        }
+        mostrarError('k', errorMsg); 
+        return; 
+    }
+
     // Generar KML usando la etiqueta <color> nativa de Google Earth
     let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -739,22 +765,17 @@ function procesarKML() {
     }).join('')}
   </Document>
 </kml>`;
+
     let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
     document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
-    // =========================================================================
-    // CAMBIO AQUÍ: Primero hacemos VISIBLE el contenedor de los resultados
-    // =========================================================================
+
     document.getElementById('k_resultados').style.display = 'block';
     if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
-    // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
-// Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
+
     setTimeout(() => {
-        // Le ordenamos a Leaflet recalcular sus dimensiones
         mapKml.invalidateSize();
 
-        // =========================================================================
-        // SOLUCIÓN: Limpiar los marcadores anteriores antes de agregar los nuevos
-        // =========================================================================
+        // Limpieza de marcadores viejos
         mapKml.eachLayer(function (layer) {
             if (layer instanceof L.Marker) {
                 mapKml.removeLayer(layer);
@@ -762,7 +783,6 @@ function procesarKML() {
         });
 
         let bounds = [];
-        // Renderizar pines SVG en el mapa
         puntos.forEach(p => {
             bounds.push([p.lat, p.lon]);
             let colorObj = obtenerColor(p.col);
@@ -772,15 +792,37 @@ function procesarKML() {
         });
         mapKml.fitBounds(bounds, { padding: [30, 30] });
     }, 100);
+
+    // =========================================================================
+    // CONSTRUCCIÓN DEL MENSAJE DE RESUMEN CON VALORES NO ENCONTRADOS
+    // =========================================================================
+    let detallesFaltantes = [];
+
+    if (registrosNoEncontrados.length > 0) {
+        detallesFaltantes.push(`Registros no encontrados/inválidos (${registrosNoEncontrados.length}): ${registrosNoEncontrados.join(', ')}`);
+    }
+
+    if (coloresNoEncontrados.size > 0) {
+        detallesFaltantes.push(`Colores no reconocidos: ${Array.from(coloresNoEncontrados).join(', ')}`);
+    }
+
+    let textoResumen = `Puntos procesados en KML: ${puntos.length}`;
+    if (detallesFaltantes.length > 0) {
+        textoResumen += ` | ⚠️ No encontrados: ${detallesFaltantes.join(' | ')}`;
+    }
+
     tempDatosGuardar = {
         modoApp: 'Mapa KML',
-        resumen: `Puntos procesados en KML: ${puntos.length}`,
+        resumen: textoResumen,
         linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
-        datos: { totalPuntos: puntos.length }
+        datos: { 
+            totalPuntos: puntos.length,
+            registrosNoEncontrados: registrosNoEncontrados,
+            coloresNoEncontrados: Array.from(coloresNoEncontrados)
+        }
     };
     renderizarBotonGuardar('k');
 }
-
 </script>
 </body>
 </html>
