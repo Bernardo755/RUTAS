@@ -650,23 +650,18 @@ async function procesarRutaMasivaPuntoAPunto() {
     finally { document.getElementById('s_loader').style.display = 'none'; }
 }
 
-
-
 function procesarKML() {
-    let elemError = document.getElementById('k_errorMsg');
-    elemError.style.display = 'none';
-    elemError.innerText = '';
+    document.getElementById('k_errorMsg').style.display = 'none';
     document.getElementById('k_resultados').style.display = 'none';
-
     let lineas = document.getElementById('k_datos').value.trim().split('\n');
     let puntos = [];
     let tbody = document.getElementById('k_tablaBody'); 
     tbody.innerHTML = '';
 
-    // Arreglos para registrar qué no se encontró
-    let registrosNoEncontrados = [];
-    let coloresNoEncontrados = new Set();
+    // Arreglo para guardar explícitamente los valores no encontrados
+    let noEncontrados = [];
 
+    // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
     const mapaColores = {
         'rojo':     { hex: '#e74c3c', abgr: 'ff3c4ce7' },
         'red':      { hex: '#e74c3c', abgr: 'ff3c4ce7' },
@@ -689,12 +684,16 @@ function procesarKML() {
 
     function obtenerColor(input) {
         let key = (input || 'azul').toLowerCase().trim();
+        // Si se buscó un valor y no existe en la base/mapa de colores
         if (key && !mapaColores[key]) {
-            coloresNoEncontrados.add(input);
+            if (!noEncontrados.includes(input)) {
+                noEncontrados.push(input);
+            }
         }
         return mapaColores[key] || mapaColores['azul'];
     }
 
+    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
     function crearIconoSVG(colorHex) {
         let svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
@@ -711,56 +710,36 @@ function procesarKML() {
     }
 
     lineas.forEach((l, i) => {
-        if (!l.trim()) return;
         let p = l.split(/,|\t/).map(x => x.trim());
-        
-        // Toma el Nombre del punto (p[2]) si existe, o el número de fila
-        let identificador = (p[2] && p[2] !== '') ? p[2] : `Fila ${i + 1}`;
-
-        if (p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1]) && p[0] !== '' && p[1] !== '') {
+        if(p.length >= 2 && !isNaN(p[0]) && p[0] !== '') {
             let obj = { 
                 lat: p[0], 
                 lon: p[1], 
-                nom: p[2] || '', 
-                d1: p[3] || '', 
-                d2: p[4] || '', 
-                d3: p[5] || '', 
-                col: p[6] || 'azul' 
+                nom: p[2]||'', 
+                d1: p[3]||'', 
+                d2: p[4]||'', 
+                d3: p[5]||'', 
+                col: p[6]||'azul' 
             };
             puntos.push(obj);
             tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
-        } else {
-            // Guarda la fila o valor que falló
-            registrosNoEncontrados.push(identificador);
+        } else if (l.trim() !== '') {
+            // Si la línea ingresada no existe o no se pudo encontrar/validar
+            let valorNoEncontrado = p[2] || p[0] || `Línea ${i + 1}`;
+            if (!noEncontrados.includes(valorNoEncontrado)) {
+                noEncontrados.push(valorNoEncontrado);
+            }
         }
     });
 
-    if (puntos.length === 0) { 
-        let errorDetalle = "Sin puntos válidos.";
-        if (registrosNoEncontrados.length > 0) {
-            errorDetalle += ` No se encontraron: ${registrosNoEncontrados.join(', ')}`;
-        }
-        mostrarError('k', errorDetalle); 
-        return; 
+    // Muestra la alerta exclusivamente con la lista de valores no encontrados
+    if (noEncontrados.length > 0) {
+        mostrarError('k', `No se encontraron los siguientes valores: ${noEncontrados.join(', ')}`);
     }
 
-    // =========================================================================
-    // SOLUCIÓN: MOSTRAR ALERTA EN LA INTERFAZ SI HAY DATOS O COLORES FALTANTES
-    // =========================================================================
-    let avisos = [];
-    if (registrosNoEncontrados.length > 0) {
-        avisos.push(`⚠️ Registros no encontrados/inválidos (${registrosNoEncontrados.length}): ${registrosNoEncontrados.join(', ')}`);
-    }
-    if (coloresNoEncontrados.size > 0) {
-        avisos.push(`⚠️ Colores no encontrados (${coloresNoEncontrados.size}): ${Array.from(coloresNoEncontrados).join(', ')}`);
-    }
+    if (puntos.length === 0) { return; }
 
-    if (avisos.length > 0) {
-        elemError.innerText = avisos.join(' | ');
-        elemError.style.display = 'block'; // Lo hace visible en la pantalla
-    }
-
-    // Generar archivo KML
+    // Generar KML usando la etiqueta <color> nativa de Google Earth
     let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
@@ -794,7 +773,6 @@ function procesarKML() {
     setTimeout(() => {
         mapKml.invalidateSize();
 
-        // Eliminar pines viejos
         mapKml.eachLayer(function (layer) {
             if (layer instanceof L.Marker) {
                 mapKml.removeLayer(layer);
@@ -814,12 +792,14 @@ function procesarKML() {
 
     tempDatosGuardar = {
         modoApp: 'Mapa KML',
-        resumen: `Puntos procesados: ${puntos.length}` + (avisos.length ? ` | ${avisos.join(' ')}` : ''),
+        resumen: `Puntos procesados en KML: ${puntos.length}`,
         linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
         datos: { totalPuntos: puntos.length }
     };
     renderizarBotonGuardar('k');
 }
+
+
 </script>
 </body>
 </html>
