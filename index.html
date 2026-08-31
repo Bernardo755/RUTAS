@@ -653,14 +653,17 @@ async function procesarRutaMasivaPuntoAPunto() {
 
 
 function procesarKML() {
-    document.getElementById('k_errorMsg').style.display = 'none';
+    let elemError = document.getElementById('k_errorMsg');
+    elemError.style.display = 'none';
+    elemError.innerText = '';
     document.getElementById('k_resultados').style.display = 'none';
+
     let lineas = document.getElementById('k_datos').value.trim().split('\n');
     let puntos = [];
     let tbody = document.getElementById('k_tablaBody'); 
     tbody.innerHTML = '';
 
-    // Colecciones para rastrear exactamente qué no se encontró
+    // Arreglos para registrar qué no se encontró
     let registrosNoEncontrados = [];
     let coloresNoEncontrados = new Set();
 
@@ -687,7 +690,7 @@ function procesarKML() {
     function obtenerColor(input) {
         let key = (input || 'azul').toLowerCase().trim();
         if (key && !mapaColores[key]) {
-            coloresNoEncontrados.add(input); // Guarda el nombre del color no hallado
+            coloresNoEncontrados.add(input);
         }
         return mapaColores[key] || mapaColores['azul'];
     }
@@ -708,11 +711,11 @@ function procesarKML() {
     }
 
     lineas.forEach((l, i) => {
-        if (!l.trim()) return; // Ignorar líneas vacías
+        if (!l.trim()) return;
         let p = l.split(/,|\t/).map(x => x.trim());
         
-        // Identificador del registro (Nombre o Número de Línea)
-        let identificador = (p[2] && p[2] !== '') ? p[2] : `Línea ${i + 1}`;
+        // Toma el Nombre del punto (p[2]) si existe, o el número de fila
+        let identificador = (p[2] && p[2] !== '') ? p[2] : `Fila ${i + 1}`;
 
         if (p.length >= 2 && !isNaN(p[0]) && !isNaN(p[1]) && p[0] !== '' && p[1] !== '') {
             let obj = { 
@@ -727,21 +730,37 @@ function procesarKML() {
             puntos.push(obj);
             tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
         } else {
-            // Guarda el valor o nombre específico que no pudo procesarse
+            // Guarda la fila o valor que falló
             registrosNoEncontrados.push(identificador);
         }
     });
 
     if (puntos.length === 0) { 
-        let errorMsg = "Sin puntos válidos.";
+        let errorDetalle = "Sin puntos válidos.";
         if (registrosNoEncontrados.length > 0) {
-            errorMsg += ` No se encontraron/procesaron: ${registrosNoEncontrados.join(', ')}`;
+            errorDetalle += ` No se encontraron: ${registrosNoEncontrados.join(', ')}`;
         }
-        mostrarError('k', errorMsg); 
+        mostrarError('k', errorDetalle); 
         return; 
     }
 
-    // Generar KML usando la etiqueta <color> nativa de Google Earth
+    // =========================================================================
+    // SOLUCIÓN: MOSTRAR ALERTA EN LA INTERFAZ SI HAY DATOS O COLORES FALTANTES
+    // =========================================================================
+    let avisos = [];
+    if (registrosNoEncontrados.length > 0) {
+        avisos.push(`⚠️ Registros no encontrados/inválidos (${registrosNoEncontrados.length}): ${registrosNoEncontrados.join(', ')}`);
+    }
+    if (coloresNoEncontrados.size > 0) {
+        avisos.push(`⚠️ Colores no encontrados (${coloresNoEncontrados.size}): ${Array.from(coloresNoEncontrados).join(', ')}`);
+    }
+
+    if (avisos.length > 0) {
+        elemError.innerText = avisos.join(' | ');
+        elemError.style.display = 'block'; // Lo hace visible en la pantalla
+    }
+
+    // Generar archivo KML
     let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
@@ -775,7 +794,7 @@ function procesarKML() {
     setTimeout(() => {
         mapKml.invalidateSize();
 
-        // Limpieza de marcadores viejos
+        // Eliminar pines viejos
         mapKml.eachLayer(function (layer) {
             if (layer instanceof L.Marker) {
                 mapKml.removeLayer(layer);
@@ -793,33 +812,11 @@ function procesarKML() {
         mapKml.fitBounds(bounds, { padding: [30, 30] });
     }, 100);
 
-    // =========================================================================
-    // CONSTRUCCIÓN DEL MENSAJE DE RESUMEN CON VALORES NO ENCONTRADOS
-    // =========================================================================
-    let detallesFaltantes = [];
-
-    if (registrosNoEncontrados.length > 0) {
-        detallesFaltantes.push(`Registros no encontrados/inválidos (${registrosNoEncontrados.length}): ${registrosNoEncontrados.join(', ')}`);
-    }
-
-    if (coloresNoEncontrados.size > 0) {
-        detallesFaltantes.push(`Colores no reconocidos: ${Array.from(coloresNoEncontrados).join(', ')}`);
-    }
-
-    let textoResumen = `Puntos procesados en KML: ${puntos.length}`;
-    if (detallesFaltantes.length > 0) {
-        textoResumen += ` | ⚠️ No encontrados: ${detallesFaltantes.join(' | ')}`;
-    }
-
     tempDatosGuardar = {
         modoApp: 'Mapa KML',
-        resumen: textoResumen,
+        resumen: `Puntos procesados: ${puntos.length}` + (avisos.length ? ` | ${avisos.join(' ')}` : ''),
         linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
-        datos: { 
-            totalPuntos: puntos.length,
-            registrosNoEncontrados: registrosNoEncontrados,
-            coloresNoEncontrados: Array.from(coloresNoEncontrados)
-        }
+        datos: { totalPuntos: puntos.length }
     };
     renderizarBotonGuardar('k');
 }
