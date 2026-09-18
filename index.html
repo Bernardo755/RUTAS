@@ -661,46 +661,72 @@ async function procesarRutaMasivaPuntoAPunto() {
     tbody.innerHTML = '';
     // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
 const mapaColores = {
-        // --- Originales ---
-        'rojo':     { hex: '#e74c3c', abgr: 'ff3c4ce7' },
-        'red':      { hex: '#e74c3c', abgr: 'ff3c4ce7' },
-        'azul':     { hex: '#3498db', abgr: 'ffdb9834' },
-        'blue':     { hex: '#3498db', abgr: 'ffdb9834' },
-        'verde':    { hex: '#2ecc71', abgr: 'ff71cc2e' },
-        'green':    { hex: '#2ecc71', abgr: 'ff71cc2e' },
-        'amarillo': { hex: '#f1c40f', abgr: 'ff0fc4f1' },
-        'yellow':   { hex: '#f1c40f', abgr: 'ff0fc4f1' },
-        'naranja':  { hex: '#e67e22', abgr: 'ff227ee6' },
-        'orange':   { hex: '#e67e22', abgr: 'ff227ee6' },
-        'morado':   { hex: '#9b59b6', abgr: 'ffb6599b' },
-        'purple':   { hex: '#9b59b6', abgr: 'ffb6599b' },
-        'violeta':  { hex: '#9b59b6', abgr: 'ffb6599b' },
-        'negro':    { hex: '#2c3e50', abgr: 'ff503e2c' },
-        'black':    { hex: '#2c3e50', abgr: 'ff503e2c' },
-        'gris':     { hex: '#95a5a6', abgr: 'ffa6a595' },
-        'grey':     { hex: '#95a5a6', abgr: 'ffa6a595' },
+    // --- Rojos / Reds ---
+    'rojo':       { hex: '#e74c3c', abgr: 'ff3c4ce7' },
+    'red':        { hex: '#e74c3c', abgr: 'ff3c4ce7' },
+    'carmesi':    { hex: '#dc143c', abgr: 'ff3c14dc' },
+    'crimson':    { hex: '#dc143c', abgr: 'ff3c14dc' },
+    'borgoña':    { hex: '#800020', abgr: 'ff200080' },
+    'burgundy':   { hex: '#800020', abgr: 'ff200080' },
 
-        // --- Nuevos Colores ---
-        'rosa':     { hex: '#ff69b4', abgr: 'ffb469ff' },
-        'pink':     { hex: '#ff69b4', abgr: 'ffb469ff' },
-        'celeste':  { hex: '#00bcd4', abgr: 'ffd4bc00' },
-        'cyan':     { hex: '#00bcd4', abgr: 'ffd4bc00' },
-        'turquesa': { hex: '#1abc9c', abgr: 'ff9cbc1a' },
-        'turquoise':{ hex: '#1abc9c', abgr: 'ff9cbc1a' },
-        'lima':     { hex: '#cddc39', abgr: 'ff39dccd' },
-        'lime':     { hex: '#cddc39', abgr: 'ff39dccd' },
-        'marron':   { hex: '#795548', abgr: 'ff485579' },
-        'brown':    { hex: '#795548', abgr: 'ff485579' },
-        'cafe':     { hex: '#795548', abgr: 'ff485579' },
-        'blanco':   { hex: '#ffffff', abgr: 'ffffffff' },
-        'white':    { hex: '#ffffff', abgr: 'ffffffff' },
-        'magenta':  { hex: '#e91e63', abgr: 'ff631ee9' },
-        'gold':     { hex: '#ffd700', abgr: 'ff00d7ff' },
-        'dorado':   { hex: '#ffd700', abgr: 'ff00d7ff' },
-        'plateado': { hex: '#bdc3c7', abgr: 'ffc7c3bd' },
-        'silver':   { hex: '#bdc3c7', abgr: 'ffc7c3bd' }
+    // --- Rosas / Pinks ---
+    'rosa':       { hex: '#ff69b4', abgr: 'ffb469ff' },
+    'pink':       { hex: '#ff69b4', abgr: 'ffb469ff' },
+    'magenta':    { hex: '#e91e63', abgr: 'ff631ee9' },
+
+    // --- Naranjas y Salmones / Oranges & Salmons ---
+    'naranja':    { hex: '#e67e22', abgr: 'ff227ee6' },
+    'orange':     { hex: '#e67e22', abgr: 'ff227ee6' },
+    'salmón':     { hex: '#fa8072', abgr: 'ff7280fa' },
+    'salmon':     { hex: '#fa8072', abgr: 'ff7280fa' },
+    'coral':      { hex: '#ff7f50', abgr: 'ff507fff' },
+
+    // --- Amarillos / Yellows ---
+    'amarillo':   { hex: '#f1c40f', abgr: 'ff0fc4f1' },
+    'yellow':     { hex: '#f1c40f', abgr: 'ff0fc4f1' },
+    'dorado':     { hex: '#ffd700', abgr: 'ff00d7ff' },
+    'gold':       { hex: '#ffd700', abgr: 'ff00d7ff' },
+
+    // --- Verdes / Greens ---
+    'verde':      { hex: '#2ecc71', abgr: 'ff71cc2e' },
+    'green':      { hex: '#2ecc71', abgr: 'ff71cc2e' },
+    'lima':       { hex: '#cddc39', abgr: 'ff39dccd' },
+    'lime':       { hex: '#cddc39', abgr: 'ff39dccd' },
+    'olivo':      { hex: '#556b2f', abgr: 'ff2f6b55' },
+    'olive':      { hex: '#556b2f', abgr: 'ff2f6b55' },
+    'turquesa':   { hex: '#1abc9c', abgr: 'ff9cbc1a' },
+    'turquoise':  { hex: '#1abc9c', abgr: 'ff9cbc1a' },
+
+    // --- Azules / Blues ---
+    'azul':       { hex: '#3498db', abgr: 'ffdb9834' },
+    'blue':       { hex: '#3498db', abgr: 'ffdb9834' },
+    'celeste':    { hex: '#00bcd4', abgr: 'ffd4bc00' },
+    'cyan':       { hex: '#00bcd4', abgr: 'ffd4bc00' },
+    'marino':     { hex: '#1b4f72', abgr: 'ff724f1b' },
+    'navy':       { hex: '#1b4f72', abgr: 'ff724f1b' },
+
+    // --- Morados / Purples ---
+    'morado':     { hex: '#9b59b6', abgr: 'ffb6599b' },
+    'purple':     { hex: '#9b59b6', abgr: 'ffb6599b' },
+    'violeta':    { hex: '#8e44ad', abgr: 'ffad448e' },
+    'indigo':     { hex: '#4b0082', abgr: 'ff82004b' },
+
+    // --- Marrones / Browns ---
+    'marron':     { hex: '#795548', abgr: 'ff485579' },
+    'brown':      { hex: '#795548', abgr: 'ff485579' },
+    'cafe':       { hex: '#795548', abgr: 'ff485579' },
+    'chocolate':  { hex: '#d2691e', abgr: 'ff1e69d2' },
+
+    // --- Neutros (Blancos, Grises, Negros) / Neutrals ---
+    'blanco':     { hex: '#ffffff', abgr: 'ffffffff' },
+    'white':      { hex: '#ffffff', abgr: 'ffffffff' },
+    'gris':       { hex: '#95a5a6', abgr: 'ffa6a595' },
+    'grey':       { hex: '#95a5a6', abgr: 'ffa6a595' },
+    'plateado':   { hex: '#bdc3c7', abgr: 'ffc7c3bd' },
+    'silver':     { hex: '#bdc3c7', abgr: 'ffc7c3bd' },
+    'negro':      { hex: '#2c3e50', abgr: 'ff503e2c' },
+    'black':      { hex: '#2c3e50', abgr: 'ff503e2c' }
 };
-
 
         
     function obtenerColor(input) {
