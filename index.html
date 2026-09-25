@@ -8,24 +8,26 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --accent: #14b8a6;
-            --accent-dark: #0f766e;
+            --primary: #6366f1;
+            --primary-2: #8b5cf6;
+            --primary-dark: #4f46e5;
+            --accent: #06b6d4;
+            --accent-2: #10b981;
+            --accent-dark: #0891b2;
             --bg: #f4f7fb;
             --surface: #ffffff;
             --surface-soft: #f8fafc;
-            --border: #dbe3ee;
-            --text: #172033;
-            --muted: #64748b;
-            --success: #16a34a;
-            --warning: #d97706;
-            --danger: #dc2626;
+            --border: #e2e5f5;
+            --text: #1e1b3a;
+            --muted: #6b7280;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
         }
         * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 55%, #ecfeff 100%);
+            background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 50%, #ecfeff 100%);
             color: var(--text);
             margin: 0;
             padding: 24px;
@@ -44,10 +46,10 @@
             margin-bottom: 20px;
         }
         .panel-inicial {
-            background: linear-gradient(135deg, #eff6ff, #f0fdfa);
+            background: linear-gradient(135deg, #eef2ff, #ecfeff);
             padding: 22px;
             border-radius: 14px;
-            border: 1px solid #cbdcf7;
+            border: 1px solid #d6dcfb;
             margin-bottom: 20px;
         }
         .seccion-dinamica {
@@ -83,9 +85,9 @@
             transform: translateY(-1px);
         }
         .tab-btn.active {
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
             color: white;
-            box-shadow: 0 5px 14px rgba(37,99,235,0.22);
+            box-shadow: 0 5px 14px rgba(99,102,241,0.28);
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -111,8 +113,8 @@
             transition: 0.2s;
         }
         input[type="text"]:focus, textarea:focus, select:focus {
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+            border-color: #a5b4fc;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
         }
         textarea { resize: vertical; font-family: monospace; white-space: pre; }
         .checkbox-group {
@@ -124,11 +126,11 @@
             border-radius: 9px;
             margin-bottom: 15px;
             font-weight: bold;
-            color: #9a3412;
-            border: 1px solid #fed7aa;
+            color: #b45309;
+            border: 1px solid #fde68a;
         }
         button.action-btn {
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
             color: white;
             border: none;
             padding: 14px 24px;
@@ -138,7 +140,7 @@
             width: 100%;
             font-size: 16px;
             transition: 0.2s;
-            box-shadow: 0 5px 14px rgba(37,99,235,0.18);
+            box-shadow: 0 5px 14px rgba(99,102,241,0.25);
         }
         button.action-btn:hover {
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
@@ -151,8 +153,8 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
-            border: 1px solid #bfdbfe;
+            background: linear-gradient(135deg, #eef2ff 0%, #ecfeff 100%);
+            border: 1px solid #c7d2fe;
             border-radius: 16px;
             padding: 35px 25px;
         }
@@ -169,7 +171,7 @@
             justify-content: center;
             gap: 10px;
             min-width: 230px;
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            background: linear-gradient(135deg, var(--primary-2), var(--accent));
             color: white;
             border: none;
             padding: 14px 26px;
@@ -177,11 +179,11 @@
             font-size: 16px;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 7px 18px rgba(20,184,166,0.22);
+            box-shadow: 0 7px 18px rgba(139,92,246,0.28);
             transition: 0.2s;
         }
         .btn-mapa-externo:hover {
-            background: linear-gradient(135deg, #115e59, #0f766e);
+            background: linear-gradient(135deg, #7c3aed, var(--accent-dark));
             transform: translateY(-1px);
         }
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
@@ -191,11 +193,60 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
         th { background-color: var(--surface-soft); color: #334155; }
-        .resumen { background: #ecfdf5; border: 1px solid #bbf7d0; padding: 15px; border-radius: 9px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #166534; }
-        .btn-link { display: inline-block; background: var(--success); color: white; padding: 10px 18px; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; }
-        .btn-link:hover { background: #15803d; }
+        .resumen { background: #ecfdf5; border: 1px solid #a7f3d0; padding: 15px; border-radius: 9px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #047857; }
+        .btn-link { display: inline-block; background: linear-gradient(135deg, var(--success), var(--accent)); color: white; padding: 10px 18px; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; box-shadow: 0 4px 12px rgba(16,185,129,0.22); }
+        .btn-link:hover { filter: brightness(0.95); transform: translateY(-1px); }
         .error { color: var(--danger); font-weight: bold; margin-top: 10px; display: none; }
         .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
+
+        /* ===== Paleta de personalización de colores KML ===== */
+        .kml-paleta-wrap {
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+        .kml-paleta-wrap h3 { margin-top: 0; }
+        .kml-paleta-hint { color: var(--muted); font-size: 13px; margin: -4px 0 16px; }
+        .kml-punto-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border);
+            flex-wrap: wrap;
+        }
+        .kml-punto-row:last-child { border-bottom: none; }
+        .kml-punto-nombre {
+            min-width: 160px;
+            font-weight: 700;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .kml-punto-nombre small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+        .kml-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+        .kml-swatch {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 0 0 1px var(--border);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            padding: 0;
+        }
+        .kml-swatch:hover { transform: scale(1.15); }
+        .kml-swatch.selected {
+            box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--primary);
+            transform: scale(1.12);
+        }
+        .kml-color-actual {
+            font-size: 12px;
+            color: var(--muted);
+            min-width: 70px;
+            text-transform: capitalize;
+        }
         @media (max-width: 700px) {
             body { padding: 12px; }
             .container { padding: 18px; border-radius: 14px; }
@@ -239,7 +290,7 @@
 
     <!-- Opción 2: Consulta -->
     <div id="panel-consulta" class="seccion-dinamica" style="display:none;">
-        <button class="action-btn" style="background:#f4b400; color:#000;" onclick="cargarProcesosDesdeBD()">🔄 Descargar Procesos Guardados</button>
+        <button class="action-btn" style="background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#1e1b3a;" onclick="cargarProcesosDesdeBD()">🔄 Descargar Procesos Guardados</button>
         <div id="loader-consulta" class="loader">Consultando base de datos...</div>
         
         <div id="bloque-select-consulta" class="form-group" style="display:none; margin-top:15px;">
@@ -284,12 +335,12 @@
         </div>
         <div class="form-group">
             <div id="m_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores en Base</button>
+                <button class="action-btn" style="background:linear-gradient(135deg,#f97316,#fb923c); font-size:14px; padding:10px;" onclick="extraerDeBD('m')">🔍 Buscar valores en Base</button>
             </div>
             <textarea id="m_waypoints" rows="5" placeholder="19.42847,-99.12766, Primaria Benito Juarez&#10;19.43555,-99.14111, Secundaria Tec 45"></textarea>
         </div>
 
-        <div class="checkbox-group" style="background: #e8f0fe; color: #1967d2; border:none;">
+        <div class="checkbox-group" style="background: #eef2ff; color: #4338ca; border:none;">
             <input type="checkbox" id="m_regreso" style="width: 20px; height: 20px;">
             <label for="m_regreso" style="margin: 0;">¿Agregar regreso al punto de partida al final?</label>
         </div>
@@ -328,12 +379,12 @@
         </div>
         <div class="form-group">
             <div id="s_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores en Base</button>
+                <button class="action-btn" style="background:linear-gradient(135deg,#f97316,#fb923c); font-size:14px; padding:10px;" onclick="extraerDeBD('s')">🔍 Buscar valores en Base</button>
             </div>
             <textarea id="s_destinos" rows="5" placeholder="19.5012, -99.1823, Sucursal Norte"></textarea>
         </div>
 
-        <div class="checkbox-group" style="background: #e8f0fe; color: #1967d2; border:none;">
+        <div class="checkbox-group" style="background: #eef2ff; color: #4338ca; border:none;">
             <input type="checkbox" id="s_regreso" style="width: 20px; height: 20px;">
             <label for="s_regreso" style="margin: 0;">¿Agregar regreso al punto de partida al final?</label>
         </div>
@@ -364,7 +415,7 @@
         </div>
         <div class="form-group">
             <div id="k_btn_bd" style="display:none; margin-bottom:10px;">
-                <button class="action-btn" style="background:#e65100; font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores en Base</button>
+                <button class="action-btn" style="background:linear-gradient(135deg,#f97316,#fb923c); font-size:14px; padding:10px;" onclick="extraerDeBD('k')">🔍 Buscar valores en Base</button>
             </div>
             <label>Formato: Latitud, Longitud, Nombre, Desc1, Desc2, Desc3, Color</label>
             <textarea id="k_datos" rows="5" placeholder="19.4326, -99.1332, Escuela Central, Zona N, Dir Juan, Mat, red"></textarea>
@@ -380,6 +431,13 @@
                 <thead><tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Desc 1</th><th>Desc 2</th><th>Desc 3</th><th>Color</th></tr></thead>
                 <tbody id="k_tablaBody"></tbody>
             </table>
+
+            <div class="kml-paleta-wrap">
+                <h3>🎨 Personaliza los colores antes de descargar</h3>
+                <p class="kml-paleta-hint">Elige un color de la paleta para cada punto. Los cambios se reflejan al instante en el mapa y en el archivo KML que descargues.</p>
+                <div id="k_paletaPersonalizacion"></div>
+            </div>
+
             <a id="k_btnDescarga" class="btn-link" style="margin-top: 15px;" href="#" download="puntos.kml">📥 Descargar Archivo KML</a>
             
             <div id="k_guardar_btn_box" style="margin-top:20px;"></div>
@@ -454,6 +512,187 @@
    let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
+
+    // ==========================================
+    // PALETA DE COLORES (usada en el módulo KML)
+    // ==========================================
+    // Hexadecimal para el mapa web y ABGR para el archivo KML
+    const mapaColores = {
+        // --- Rojos / Reds ---
+        'rojo':       { hex: '#f43f5e', abgr: 'ff5e3ff4' },
+        'red':        { hex: '#f43f5e', abgr: 'ff5e3ff4' },
+        'carmesi':    { hex: '#e11d48', abgr: 'ff481de1' },
+        'crimson':    { hex: '#e11d48', abgr: 'ff481de1' },
+        'borgoña':    { hex: '#9f1239', abgr: 'ff39129f' },
+        'burgundy':   { hex: '#9f1239', abgr: 'ff39129f' },
+
+        // --- Rosas / Pinks ---
+        'rosa':       { hex: '#ec4899', abgr: 'ff9948ec' },
+        'pink':       { hex: '#ec4899', abgr: 'ff9948ec' },
+        'magenta':    { hex: '#d946ef', abgr: 'ffef46d9' },
+
+        // --- Naranjas y Salmones / Oranges & Salmons ---
+        'naranja':    { hex: '#f97316', abgr: 'ff1673f9' },
+        'orange':     { hex: '#f97316', abgr: 'ff1673f9' },
+        'salmón':     { hex: '#fb7185', abgr: 'ff8571fb' },
+        'salmon':     { hex: '#fb7185', abgr: 'ff8571fb' },
+        'coral':      { hex: '#ff6f61', abgr: 'ff616fff' },
+
+        // --- Amarillos / Yellows ---
+        'amarillo':   { hex: '#eab308', abgr: 'ff08b3ea' },
+        'yellow':     { hex: '#eab308', abgr: 'ff08b3ea' },
+        'dorado':     { hex: '#f59e0b', abgr: 'ff0b9ef5' },
+        'gold':       { hex: '#f59e0b', abgr: 'ff0b9ef5' },
+
+        // --- Verdes / Greens ---
+        'verde':      { hex: '#10b981', abgr: 'ff81b910' },
+        'green':      { hex: '#10b981', abgr: 'ff81b910' },
+        'lima':       { hex: '#84cc16', abgr: 'ff16cc84' },
+        'lime':       { hex: '#84cc16', abgr: 'ff16cc84' },
+        'olivo':      { hex: '#65a30d', abgr: 'ff0da365' },
+        'olive':      { hex: '#65a30d', abgr: 'ff0da365' },
+        'turquesa':   { hex: '#14b8a6', abgr: 'ffa6b814' },
+        'turquoise':  { hex: '#14b8a6', abgr: 'ffa6b814' },
+
+        // --- Azules / Blues ---
+        'azul':       { hex: '#6366f1', abgr: 'fff16663' },
+        'blue':       { hex: '#6366f1', abgr: 'fff16663' },
+        'celeste':    { hex: '#06b6d4', abgr: 'ffd4b606' },
+        'cyan':       { hex: '#06b6d4', abgr: 'ffd4b606' },
+        'marino':     { hex: '#1e3a8a', abgr: 'ff8a3a1e' },
+        'navy':       { hex: '#1e3a8a', abgr: 'ff8a3a1e' },
+
+        // --- Morados / Purples ---
+        'morado':     { hex: '#8b5cf6', abgr: 'fff65c8b' },
+        'purple':     { hex: '#8b5cf6', abgr: 'fff65c8b' },
+        'violeta':    { hex: '#a855f7', abgr: 'fff755a8' },
+        'indigo':     { hex: '#4f46e5', abgr: 'ffe5464f' },
+
+        // --- Marrones / Browns ---
+        'marron':     { hex: '#92400e', abgr: 'ff0e4092' },
+        'brown':      { hex: '#92400e', abgr: 'ff0e4092' },
+        'cafe':       { hex: '#92400e', abgr: 'ff0e4092' },
+        'chocolate':  { hex: '#b45309', abgr: 'ff0953b4' },
+
+        // --- Neutros (Blancos, Grises, Negros) / Neutrals ---
+        'blanco':     { hex: '#ffffff', abgr: 'ffffffff' },
+        'white':      { hex: '#ffffff', abgr: 'ffffffff' },
+        'gris':       { hex: '#64748b', abgr: 'ff8b7464' },
+        'grey':       { hex: '#64748b', abgr: 'ff8b7464' },
+        'plateado':   { hex: '#94a3b8', abgr: 'ffb8a394' },
+        'silver':     { hex: '#94a3b8', abgr: 'ffb8a394' },
+        'negro':      { hex: '#1e1b3a', abgr: 'ff3a1b1e' },
+        'black':      { hex: '#1e1b3a', abgr: 'ff3a1b1e' }
+    };
+
+    // Set de colores curados que se muestran como paleta seleccionable en la UI
+    const PALETA_UI = [
+        'rojo','carmesi','borgoña','rosa','magenta','naranja','salmón','coral',
+        'amarillo','dorado','verde','lima','olivo','turquesa',
+        'azul','celeste','marino','morado','violeta','indigo',
+        'marron','chocolate','blanco','gris','plateado','negro'
+    ];
+
+    function obtenerColor(input) {
+        let key = (input || 'azul').toLowerCase().trim();
+        return mapaColores[key] || mapaColores['azul'];
+    }
+
+    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
+    function crearIconoSVG(colorHex) {
+        let svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24c0-6.63-5.37-12-12-12z" fill="${colorHex}" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="12" cy="12" r="4" fill="#ffffff"/>
+        </svg>`;
+        return L.divIcon({
+           html: svg,
+            className: '',
+            iconSize: [30, 42],
+            iconAnchor: [15, 42],
+            popupAnchor: [0, -36]
+        });
+    }
+
+    // Genera el contenido XML del KML a partir del arreglo de puntos actual
+    function generarKmlContent(puntos) {
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    ${puntos.map(p => {
+        let colorObj = obtenerColor(p.col);
+        return `
+    <Placemark>
+      <name>${p.nom}</name>
+      <description>${p.d1} - ${p.d2} - ${p.d3}</description>
+      <Style>
+        <IconStyle>
+          <color>${colorObj.abgr}</color>
+          <scale>1.1</scale>
+          <Icon>
+            <href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href>
+          </Icon>
+        </IconStyle>
+      </Style>
+      <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>
+    </Placemark>`;
+    }).join('')}
+  </Document>
+</kml>`;
+    }
+
+    // Estado del módulo KML: puntos actuales y referencias a sus marcadores en el mapa
+    let kmlPuntos = [];
+    let markersKml = [];
+
+    // Regenera el archivo KML descargable con los colores actuales
+    function actualizarDescargaKml() {
+        let blob = new Blob([generarKmlContent(kmlPuntos)], { type: 'application/vnd.google-earth.kml+xml' });
+        document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
+    }
+
+    // Dibuja la sección de "Personaliza los colores" con una paleta por cada punto
+    function renderPaletaPersonalizacion() {
+        let cont = document.getElementById('k_paletaPersonalizacion');
+        if (!cont) return;
+        cont.innerHTML = kmlPuntos.map((p, idx) => {
+            let colorActual = obtenerColor(p.col);
+            let swatches = PALETA_UI.map(key => {
+                let c = mapaColores[key];
+                let seleccionado = c.hex.toLowerCase() === colorActual.hex.toLowerCase();
+                return `<button type="button" class="kml-swatch${seleccionado ? ' selected' : ''}" style="background:${c.hex};" title="${key}" onclick="seleccionarColorPunto(${idx}, '${key}')"></button>`;
+            }).join('');
+            return `
+            <div class="kml-punto-row">
+                <div class="kml-punto-nombre">${p.nom || 'Punto ' + (idx+1)}<small>${p.lat}, ${p.lon}</small></div>
+                <div class="kml-swatches">${swatches}</div>
+                <div class="kml-color-actual">${p.col || 'azul'}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // Se ejecuta cuando el usuario elige un color de la paleta para un punto específico
+    function seleccionarColorPunto(idx, colorKey) {
+        if (!kmlPuntos[idx]) return;
+        kmlPuntos[idx].col = colorKey;
+
+        // Actualiza la celda "Color" de la tabla de resultados
+        let filas = document.querySelectorAll('#k_tablaBody tr');
+        if (filas[idx]) {
+            let celdas = filas[idx].querySelectorAll('td');
+            if (celdas[7]) celdas[7].innerText = colorKey;
+        }
+
+        // Actualiza el ícono del marcador en el mapa
+        let colorObj = obtenerColor(colorKey);
+        if (markersKml[idx]) markersKml[idx].setIcon(crearIconoSVG(colorObj.hex));
+
+        // Regenera el archivo KML descargable con el nuevo color
+        actualizarDescargaKml();
+
+        // Vuelve a pintar la paleta para reflejar la selección
+        renderPaletaPersonalizacion();
+    }
 
     
     function manejarSeleccionPrincipal() {
@@ -584,7 +823,7 @@
     function renderizarBotonGuardar(modo) {
         let caja = document.getElementById(modo + '_guardar_btn_box');
         if(estadoActual === 'nuevo') {
-            caja.innerHTML = `<button class="action-btn" style="background:#34a853;" onclick="enviarABitacora()">💾 Guardar Resultados y Link en Bitácora</button>`;
+            caja.innerHTML = `<button class="action-btn" style="background:linear-gradient(135deg,#10b981,#06b6d4);" onclick="enviarABitacora()">💾 Guardar Resultados y Link en Bitácora</button>`;
         } else {
             caja.innerHTML = '';
         }
@@ -710,7 +949,7 @@ async function procesarRutaMultiple() {
 
             tbody.innerHTML += `<tr><td>0</td><td><strong>${puntos[0].nombre}</strong></td><td>${puntos[0].lat}</td><td>${puntos[0].lon}</td><td>-</td><td>-</td></tr>`;
             route.legs.forEach((leg, i) => {
-                tbody.innerHTML += `<tr><td>${i+1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color:#1a73e8; font-weight:bold;">${(leg.distance/1000).toFixed(2)} km</td><td style="color:#e37400; font-weight:bold;">${Math.round(leg.duration/60)} min</td></tr>`;
+                tbody.innerHTML += `<tr><td>${i+1}</td><td><strong>${puntos[i+1].nombre}</strong></td><td>${puntos[i+1].lat}</td><td>${puntos[i+1].lon}</td><td style="color:#6366f1; font-weight:bold;">${(leg.distance/1000).toFixed(2)} km</td><td style="color:#f59e0b; font-weight:bold;">${Math.round(leg.duration/60)} min</td></tr>`;
             });
             let distTotalKm = (route.distance/1000).toFixed(2);
             let tiempoMin = Math.round(route.duration/60);
@@ -723,7 +962,7 @@ async function procesarRutaMultiple() {
             if (routeLayerMulti) mapMulti.removeLayer(routeLayerMulti);
             markersMulti.forEach(m => mapMulti.removeLayer(m)); markersMulti = [];
             let coordsGeoJson = route.geometry.coordinates.map(c => [c[1], c[0]]);
-            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#1a73e8', weight: 5 }).addTo(mapMulti);
+            routeLayerMulti = L.polyline(coordsGeoJson, { color: '#6366f1', weight: 5 }).addTo(mapMulti);
             mapMulti.fitBounds(routeLayerMulti.getBounds(), { padding: [30, 30] });
             puntos.forEach((p, i) => {
                 let m = L.marker([p.lat, p.lon]).addTo(mapMulti).bindPopup(`<b>${i}. ${p.nombre}</b>`);
@@ -809,8 +1048,8 @@ async function procesarRutaMasivaPuntoAPunto() {
                         <td><strong>${d.nombre}</strong> ${incluirRegreso ? '<small style="color:#666;">(Ida y vuelta)</small>' : ''}</td>
                         <td>${d.lat}</td>
                         <td>${d.lon}</td>
-                        <td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td>
-                        <td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td>
+                        <td style="color:#6366f1; font-weight:bold;">${km.toFixed(2)} km</td>
+                        <td style="color:#f59e0b; font-weight:bold;">${Math.round(mn)} min</td>
                         <td>
                             <a href="${linkIndividualMaps}" target="_blank" class="btn btn-sm btn-outline-primary" style="text-decoration:none; font-size:12px;">
                                 🗺️ Abrir Mapa
@@ -821,7 +1060,7 @@ async function procesarRutaMasivaPuntoAPunto() {
                 bounds.push([d.lat, d.lon]);
                 markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
                 
-                let poly = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
+                let poly = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), {color:'#6366f1', weight:4, opacity:0.7}).addTo(mapSingle);
                 routeLayerSingle.push(poly);
 
                 // 🟢 Se genera el objeto individual para la bitácora
@@ -865,182 +1104,80 @@ async function procesarRutaMasivaPuntoAPunto() {
 
 
     function procesarKML() {
-    document.getElementById('k_errorMsg').style.display = 'none';
-    document.getElementById('k_resultados').style.display = 'none';
-    let lineas = document.getElementById('k_datos').value.trim().split('\n');
-    let puntos = [];
-    let tbody = document.getElementById('k_tablaBody'); 
-    tbody.innerHTML = '';
-    // Mapa de colores: Hexadecimal para el mapa web y ABGR para el archivo KML
-const mapaColores = {
-    // --- Rojos / Reds ---
-    'rojo':       { hex: '#e74c3c', abgr: 'ff3c4ce7' },
-    'red':        { hex: '#e74c3c', abgr: 'ff3c4ce7' },
-    'carmesi':    { hex: '#dc143c', abgr: 'ff3c14dc' },
-    'crimson':    { hex: '#dc143c', abgr: 'ff3c14dc' },
-    'borgoña':    { hex: '#800020', abgr: 'ff200080' },
-    'burgundy':   { hex: '#800020', abgr: 'ff200080' },
+    document.getElementById('k_errorMsg').style.display = 'none';
+    document.getElementById('k_resultados').style.display = 'none';
+    let lineas = document.getElementById('k_datos').value.trim().split('\n');
+    let puntos = [];
+    let tbody = document.getElementById('k_tablaBody');
+    tbody.innerHTML = '';
 
-    // --- Rosas / Pinks ---
-    'rosa':       { hex: '#ff69b4', abgr: 'ffb469ff' },
-    'pink':       { hex: '#ff69b4', abgr: 'ffb469ff' },
-    'magenta':    { hex: '#e91e63', abgr: 'ff631ee9' },
+    lineas.forEach((l, i) => {
+        let p = l.split(/,|\t/).map(x => x.trim());
+        if(p.length >= 2 && !isNaN(p[0])) {
+            let obj = { 
+                lat: p[0], 
+                lon: p[1], 
+                nom: p[2]||'', 
+                d1: p[3]||'', 
+                d2: p[4]||'', 
+                d3: p[5]||'', 
+                col: (p[6]||'azul').toLowerCase()
+            };
+            puntos.push(obj);
+            tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
+        }
+    });
+    if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
 
-    // --- Naranjas y Salmones / Oranges & Salmons ---
-    'naranja':    { hex: '#e67e22', abgr: 'ff227ee6' },
-    'orange':     { hex: '#e67e22', abgr: 'ff227ee6' },
-    'salmón':     { hex: '#fa8072', abgr: 'ff7280fa' },
-    'salmon':     { hex: '#fa8072', abgr: 'ff7280fa' },
-    'coral':      { hex: '#ff7f50', abgr: 'ff507fff' },
+    // Guarda el estado global para poder editar colores antes de descargar
+    kmlPuntos = puntos;
 
-    // --- Amarillos / Yellows ---
-    'amarillo':   { hex: '#f1c40f', abgr: 'ff0fc4f1' },
-    'yellow':     { hex: '#f1c40f', abgr: 'ff0fc4f1' },
-    'dorado':     { hex: '#ffd700', abgr: 'ff00d7ff' },
-    'gold':       { hex: '#ffd700', abgr: 'ff00d7ff' },
+    // Genera el KML inicial y prepara el link de descarga
+    actualizarDescargaKml();
 
-    // --- Verdes / Greens ---
-    'verde':      { hex: '#2ecc71', abgr: 'ff71cc2e' },
-    'green':      { hex: '#2ecc71', abgr: 'ff71cc2e' },
-    'lima':       { hex: '#cddc39', abgr: 'ff39dccd' },
-    'lime':       { hex: '#cddc39', abgr: 'ff39dccd' },
-    'olivo':      { hex: '#556b2f', abgr: 'ff2f6b55' },
-    'olive':      { hex: '#556b2f', abgr: 'ff2f6b55' },
-    'turquesa':   { hex: '#1abc9c', abgr: 'ff9cbc1a' },
-    'turquoise':  { hex: '#1abc9c', abgr: 'ff9cbc1a' },
+    // =========================================================================
+    // Primero hacemos VISIBLE el contenedor de los resultados
+    // =========================================================================
+    document.getElementById('k_resultados').style.display = 'block';
+    if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
+    // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
+    setTimeout(() => {
+        // Le ordenamos a Leaflet recalcular sus dimensiones
+        mapKml.invalidateSize();
 
-    // --- Azules / Blues ---
-    'azul':       { hex: '#3498db', abgr: 'ffdb9834' },
-    'blue':       { hex: '#3498db', abgr: 'ffdb9834' },
-    'celeste':    { hex: '#00bcd4', abgr: 'ffd4bc00' },
-    'cyan':       { hex: '#00bcd4', abgr: 'ffd4bc00' },
-    'marino':     { hex: '#1b4f72', abgr: 'ff724f1b' },
-    'navy':       { hex: '#1b4f72', abgr: 'ff724f1b' },
+        // =========================================================================
+        // Limpiar los marcadores anteriores antes de agregar los nuevos
+        // =========================================================================
+        mapKml.eachLayer(function (layer) {
+            if (layer instanceof L.Marker) {
+                mapKml.removeLayer(layer);
+            }
+        });
+        markersKml = [];
 
-    // --- Morados / Purples ---
-    'morado':     { hex: '#9b59b6', abgr: 'ffb6599b' },
-    'purple':     { hex: '#9b59b6', abgr: 'ffb6599b' },
-    'violeta':    { hex: '#8e44ad', abgr: 'ffad448e' },
-    'indigo':     { hex: '#4b0082', abgr: 'ff82004b' },
+        let bounds = [];
+        // Renderizar pines SVG en el mapa (guardando referencia para poder cambiar su color después)
+        puntos.forEach(p => {
+            bounds.push([p.lat, p.lon]);
+            let colorObj = obtenerColor(p.col);
+            let marcador = L.marker([p.lat, p.lon], { icon: crearIconoSVG(colorObj.hex) })
+                .addTo(mapKml)
+                .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
+            markersKml.push(marcador);
+        });
+        mapKml.fitBounds(bounds, { padding: [30, 30] });
+    }, 100);
 
-    // --- Marrones / Browns ---
-    'marron':     { hex: '#795548', abgr: 'ff485579' },
-    'brown':      { hex: '#795548', abgr: 'ff485579' },
-    'cafe':       { hex: '#795548', abgr: 'ff485579' },
-    'chocolate':  { hex: '#d2691e', abgr: 'ff1e69d2' },
+    // Dibuja la paleta de personalización de colores para cada punto
+    renderPaletaPersonalizacion();
 
-    // --- Neutros (Blancos, Grises, Negros) / Neutrals ---
-    'blanco':     { hex: '#ffffff', abgr: 'ffffffff' },
-    'white':      { hex: '#ffffff', abgr: 'ffffffff' },
-    'gris':       { hex: '#95a5a6', abgr: 'ffa6a595' },
-    'grey':       { hex: '#95a5a6', abgr: 'ffa6a595' },
-    'plateado':   { hex: '#bdc3c7', abgr: 'ffc7c3bd' },
-    'silver':     { hex: '#bdc3c7', abgr: 'ffc7c3bd' },
-    'negro':      { hex: '#2c3e50', abgr: 'ff503e2c' },
-    'black':      { hex: '#2c3e50', abgr: 'ff503e2c' }
-};
-
-        
-    function obtenerColor(input) {
-        let key = (input || 'azul').toLowerCase().trim();
-        return mapaColores[key] || mapaColores['azul'];
-    }
-    // Crea un marcador SVG puro para Leaflet (evita problemas de imágenes rotas)
-    function crearIconoSVG(colorHex) {
-        let svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24c0-6.63-5.37-12-12-12z" fill="${colorHex}" stroke="#ffffff" stroke-width="2"/>
-            <circle cx="12" cy="12" r="4" fill="#ffffff"/>
-        </svg>`;
-        return L.divIcon({
-           html: svg,
-            className: '',
-            iconSize: [30, 42],
-            iconAnchor: [15, 42],
-            popupAnchor: [0, -36]
-        });
-    }
-    lineas.forEach((l, i) => {
-        let p = l.split(/,|\t/).map(x => x.trim());
-        if(p.length >= 2 && !isNaN(p[0])) {
-            let obj = { 
-                lat: p[0], 
-                lon: p[1], 
-                nom: p[2]||'', 
-                d1: p[3]||'', 
-                d2: p[4]||'', 
-                d3: p[5]||'', 
-                col: p[6]||'azul' 
-            };
-            puntos.push(obj);
-            tbody.innerHTML += `<tr><td>${i+1}</td><td>${obj.nom}</td><td>${obj.lat}</td><td>${obj.lon}</td><td>${obj.d1}</td><td>${obj.d2}</td><td>${obj.d3}</td><td>${obj.col}</td></tr>`;
-        }
-    });
-    if (puntos.length === 0) { mostrarError('k', "Sin puntos válidos."); return; }
-    // Generar KML usando la etiqueta <color> nativa de Google Earth
-    let kmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    ${puntos.map(p => {
-        let colorObj = obtenerColor(p.col);
-        return `
-    <Placemark>
-      <name>${p.nom}</name>
-      <description>${p.d1} - ${p.d2} - ${p.d3}</description>
-      <Style>
-        <IconStyle>
-          <color>${colorObj.abgr}</color>
-          <scale>1.1</scale>
-          <Icon>
-            <href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href>
-          </Icon>
-        </IconStyle>
-      </Style>
-      <Point><coordinates>${p.lon},${p.lat},0</coordinates></Point>
-    </Placemark>`;
-    }).join('')}
-  </Document>
-</kml>`;
-    let blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
-    document.getElementById('k_btnDescarga').href = URL.createObjectURL(blob);
-    // =========================================================================
-    // CAMBIO AQUÍ: Primero hacemos VISIBLE el contenedor de los resultados
-    // =========================================================================
-    document.getElementById('k_resultados').style.display = 'block';
-    if (!mapKml) mapKml = inicializarMapa('mapKml', puntos[0].lat, puntos[0].lon);
-    // Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
-// Esperamos 100ms a que el navegador dibuje el contenedor en pantalla
-    setTimeout(() => {
-        // Le ordenamos a Leaflet recalcular sus dimensiones
-        mapKml.invalidateSize();
-
-        // =========================================================================
-        // SOLUCIÓN: Limpiar los marcadores anteriores antes de agregar los nuevos
-        // =========================================================================
-        mapKml.eachLayer(function (layer) {
-            if (layer instanceof L.Marker) {
-                mapKml.removeLayer(layer);
-            }
-        });
-
-        let bounds = [];
-        // Renderizar pines SVG en el mapa
-        puntos.forEach(p => {
-            bounds.push([p.lat, p.lon]);
-            let colorObj = obtenerColor(p.col);
-            L.marker([p.lat, p.lon], { icon: crearIconoSVG(colorObj.hex) })
-             .addTo(mapKml)
-             .bindPopup(`<b>${p.nom}</b><br>${p.d1}`);
-        });
-        mapKml.fitBounds(bounds, { padding: [30, 30] });
-    }, 100);
-    tempDatosGuardar = {
-        modoApp: 'Mapa KML',
-        resumen: `Puntos procesados en KML: ${puntos.length}`,
-        linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
-        datos: { totalPuntos: puntos.length }
-    };
-    renderizarBotonGuardar('k');
+    tempDatosGuardar = {
+        modoApp: 'Mapa KML',
+        resumen: `Puntos procesados en KML: ${puntos.length}`,
+        linkRuta: `https://www.google.com/maps/search/?api=1&query=${puntos[0].lat},${puntos[0].lon}`,
+        datos: { totalPuntos: puntos.length }
+    };
+    renderizarBotonGuardar('k');
 }
 
 
