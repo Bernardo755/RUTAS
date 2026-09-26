@@ -189,6 +189,15 @@
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
         .map-header h3 { margin: 0; border: none; padding: 0; }
         #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); z-index: 1; }
+        .leaflet-control-layers {
+            border-radius: 10px !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 6px 16px rgba(15,23,42,0.12) !important;
+        }
+        .leaflet-control-layers-toggle {
+            border-radius: 10px !important;
+        }
+        .leaflet-control-layers label { font-size: 13px; font-weight: 600; color: var(--text); }
         .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
@@ -516,81 +525,93 @@
     // ==========================================
     // PALETA DE COLORES (usada en el módulo KML)
     // ==========================================
-    // Hexadecimal para el mapa web y ABGR para el archivo KML
-    const mapaColores = {
-        // --- Rojos / Reds ---
-        'rojo':       { hex: '#f43f5e', abgr: 'ff5e3ff4' },
-        'red':        { hex: '#f43f5e', abgr: 'ff5e3ff4' },
-        'carmesi':    { hex: '#e11d48', abgr: 'ff481de1' },
-        'crimson':    { hex: '#e11d48', abgr: 'ff481de1' },
-        'borgoña':    { hex: '#9f1239', abgr: 'ff39129f' },
-        'burgundy':   { hex: '#9f1239', abgr: 'ff39129f' },
+    // Convierte un hex #rrggbb al formato aabbggrr que usa el KML
+    function hexToAbgr(hex) {
+        hex = hex.replace('#', '');
+        let r = hex.substring(0, 2), g = hex.substring(2, 4), b = hex.substring(4, 6);
+        return 'ff' + b + g + r;
+    }
 
-        // --- Rosas / Pinks ---
-        'rosa':       { hex: '#ec4899', abgr: 'ff9948ec' },
-        'pink':       { hex: '#ec4899', abgr: 'ff9948ec' },
-        'magenta':    { hex: '#d946ef', abgr: 'ffef46d9' },
+    // Colores base: define solo el hex, el código KML (abgr) se calcula automáticamente
+    const COLOR_HEX = {
+        // --- Rojos ---
+        'rojo': '#f43f5e', 'red': '#f43f5e',
+        'carmesi': '#e11d48', 'crimson': '#e11d48',
+        'granate': '#7f1d1d', 'maroon': '#7f1d1d',
+        'borgoña': '#9f1239', 'burgundy': '#9f1239',
 
-        // --- Naranjas y Salmones / Oranges & Salmons ---
-        'naranja':    { hex: '#f97316', abgr: 'ff1673f9' },
-        'orange':     { hex: '#f97316', abgr: 'ff1673f9' },
-        'salmón':     { hex: '#fb7185', abgr: 'ff8571fb' },
-        'salmon':     { hex: '#fb7185', abgr: 'ff8571fb' },
-        'coral':      { hex: '#ff6f61', abgr: 'ff616fff' },
+        // --- Rosas / Fucsias ---
+        'rosa': '#ec4899', 'pink': '#ec4899',
+        'magenta': '#d946ef',
+        'fucsia': '#c026d3', 'fuchsia': '#c026d3',
 
-        // --- Amarillos / Yellows ---
-        'amarillo':   { hex: '#eab308', abgr: 'ff08b3ea' },
-        'yellow':     { hex: '#eab308', abgr: 'ff08b3ea' },
-        'dorado':     { hex: '#f59e0b', abgr: 'ff0b9ef5' },
-        'gold':       { hex: '#f59e0b', abgr: 'ff0b9ef5' },
+        // --- Naranjas / Ámbar ---
+        'naranja': '#f97316', 'orange': '#f97316',
+        'salmón': '#fb7185', 'salmon': '#fb7185',
+        'coral': '#ff6f61',
+        'ambar': '#f59e0b', 'amber': '#f59e0b',
 
-        // --- Verdes / Greens ---
-        'verde':      { hex: '#10b981', abgr: 'ff81b910' },
-        'green':      { hex: '#10b981', abgr: 'ff81b910' },
-        'lima':       { hex: '#84cc16', abgr: 'ff16cc84' },
-        'lime':       { hex: '#84cc16', abgr: 'ff16cc84' },
-        'olivo':      { hex: '#65a30d', abgr: 'ff0da365' },
-        'olive':      { hex: '#65a30d', abgr: 'ff0da365' },
-        'turquesa':   { hex: '#14b8a6', abgr: 'ffa6b814' },
-        'turquoise':  { hex: '#14b8a6', abgr: 'ffa6b814' },
+        // --- Amarillos ---
+        'amarillo': '#eab308', 'yellow': '#eab308',
+        'dorado': '#facc15', 'gold': '#facc15',
+        'mostaza': '#ca8a04', 'mustard': '#ca8a04',
 
-        // --- Azules / Blues ---
-        'azul':       { hex: '#6366f1', abgr: 'fff16663' },
-        'blue':       { hex: '#6366f1', abgr: 'fff16663' },
-        'celeste':    { hex: '#06b6d4', abgr: 'ffd4b606' },
-        'cyan':       { hex: '#06b6d4', abgr: 'ffd4b606' },
-        'marino':     { hex: '#1e3a8a', abgr: 'ff8a3a1e' },
-        'navy':       { hex: '#1e3a8a', abgr: 'ff8a3a1e' },
+        // --- Verdes ---
+        'verde': '#10b981', 'green': '#10b981',
+        'esmeralda': '#059669', 'emerald': '#059669',
+        'lima': '#84cc16', 'lime': '#84cc16',
+        'olivo': '#65a30d', 'olive': '#65a30d',
+        'menta': '#2dd4bf', 'mint': '#2dd4bf',
 
-        // --- Morados / Purples ---
-        'morado':     { hex: '#8b5cf6', abgr: 'fff65c8b' },
-        'purple':     { hex: '#8b5cf6', abgr: 'fff65c8b' },
-        'violeta':    { hex: '#a855f7', abgr: 'fff755a8' },
-        'indigo':     { hex: '#4f46e5', abgr: 'ffe5464f' },
+        // --- Turquesas / Cian ---
+        'turquesa': '#14b8a6', 'turquoise': '#14b8a6',
+        'celeste': '#06b6d4', 'cyan': '#06b6d4',
+        'cielo': '#0ea5e9', 'sky': '#0ea5e9',
 
-        // --- Marrones / Browns ---
-        'marron':     { hex: '#92400e', abgr: 'ff0e4092' },
-        'brown':      { hex: '#92400e', abgr: 'ff0e4092' },
-        'cafe':       { hex: '#92400e', abgr: 'ff0e4092' },
-        'chocolate':  { hex: '#b45309', abgr: 'ff0953b4' },
+        // --- Azules ---
+        'azul': '#6366f1', 'blue': '#6366f1',
+        'zafiro': '#2563eb', 'sapphire': '#2563eb',
+        'marino': '#1e3a8a', 'navy': '#1e3a8a',
+        'acero': '#475569', 'steel': '#475569',
 
-        // --- Neutros (Blancos, Grises, Negros) / Neutrals ---
-        'blanco':     { hex: '#ffffff', abgr: 'ffffffff' },
-        'white':      { hex: '#ffffff', abgr: 'ffffffff' },
-        'gris':       { hex: '#64748b', abgr: 'ff8b7464' },
-        'grey':       { hex: '#64748b', abgr: 'ff8b7464' },
-        'plateado':   { hex: '#94a3b8', abgr: 'ffb8a394' },
-        'silver':     { hex: '#94a3b8', abgr: 'ffb8a394' },
-        'negro':      { hex: '#1e1b3a', abgr: 'ff3a1b1e' },
-        'black':      { hex: '#1e1b3a', abgr: 'ff3a1b1e' }
+        // --- Morados ---
+        'morado': '#8b5cf6', 'purple': '#8b5cf6',
+        'violeta': '#a855f7', 'violet': '#a855f7',
+        'indigo': '#4f46e5',
+        'lavanda': '#c4b5fd', 'lavender': '#c4b5fd',
+
+        // --- Marrones ---
+        'marron': '#92400e', 'brown': '#92400e',
+        'cafe': '#92400e', 'coffee': '#92400e',
+        'chocolate': '#b45309',
+        'arena': '#d6a86a', 'sand': '#d6a86a',
+
+        // --- Neutros ---
+        'blanco': '#ffffff', 'white': '#ffffff',
+        'gris': '#64748b', 'grey': '#64748b', 'gray': '#64748b',
+        'plateado': '#94a3b8', 'silver': '#94a3b8',
+        'negro': '#1e1b3a', 'black': '#1e1b3a'
     };
 
-    // Set de colores curados que se muestran como paleta seleccionable en la UI
+    // mapaColores: { hex, abgr } por cada nombre de color, calculado automáticamente
+    const mapaColores = {};
+    Object.keys(COLOR_HEX).forEach(key => {
+        let hex = COLOR_HEX[key];
+        mapaColores[key] = { hex: hex, abgr: hexToAbgr(hex) };
+    });
+
+    // Set curado de colores (sin sinónimos repetidos) que se muestra como paleta seleccionable en la UI
     const PALETA_UI = [
-        'rojo','carmesi','borgoña','rosa','magenta','naranja','salmón','coral',
-        'amarillo','dorado','verde','lima','olivo','turquesa',
-        'azul','celeste','marino','morado','violeta','indigo',
-        'marron','chocolate','blanco','gris','plateado','negro'
+        'rojo', 'carmesi', 'granate', 'borgoña',
+        'rosa', 'magenta', 'fucsia',
+        'naranja', 'salmón', 'coral', 'ambar',
+        'amarillo', 'dorado', 'mostaza',
+        'verde', 'esmeralda', 'lima', 'olivo', 'menta',
+        'turquesa', 'celeste', 'cielo',
+        'azul', 'zafiro', 'marino', 'acero',
+        'morado', 'violeta', 'indigo', 'lavanda',
+        'marron', 'chocolate', 'arena',
+        'blanco', 'gris', 'plateado', 'negro'
     ];
 
     function obtenerColor(input) {
@@ -872,9 +893,43 @@ async function enviarABitacora() {
     }
 }
 
-   function inicializarMapa(idContenedor, lat, lon) {
-        let m = L.map(idContenedor).setView([lat, lon], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
+   function crearCapasBase() {
+        // Distintas "vistas" de mapa, equivalentes a las que ofrece Google Maps
+        let calle = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+        let satelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        });
+        let terreno = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: '&copy; OpenTopoMap (CC-BY-SA)'
+        });
+        let hibridoBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        });
+        let hibridoEtiquetas = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            pane: 'overlayPane'
+        });
+        let hibrido = L.layerGroup([hibridoBase, hibridoEtiquetas]);
+
+        return {
+            "🗺️ Calle": calle,
+            "🛰️ Satélite": satelite,
+            "🏙️ Híbrido": hibrido,
+            "🏔️ Terreno": terreno
+        };
+    }
+
+    function inicializarMapa(idContenedor, lat, lon) {
+        let m = L.map(idContenedor, { zoomControl: true }).setView([lat, lon], 13);
+        let capas = crearCapasBase();
+        capas["🗺️ Calle"].addTo(m);
+        L.control.layers(capas, null, { position: 'topright', collapsed: true }).addTo(m);
         return m;
     }
 
