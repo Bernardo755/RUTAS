@@ -643,7 +643,7 @@ PARTE JAVASCRIPT
 
     /*
        Busca cada valor por separado y respeta el MISMO ORDEN en que se ingresaron.
-       - Si lo encuentra: inserta los datos de la base.
+       - Si lo encuentra: inserta las coordenadas y demás datos de la base, pero en Nombre deja el valor que escribiste.
        - Si NO lo encuentra: NO lo elimina; conserva el valor que escribiste
          (en la columna Nombre, después de las coordenadas) y pone "NO ENCONTRADO"
          en los demás campos.
@@ -691,8 +691,8 @@ PARTE JAVASCRIPT
                     r.data.forEach(d => {
                         lines.push(
                             (modo === 'k')
-                                ? `${d.lat}, ${d.lon}, ${d.nombre}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`
-                                : `${d.lat}, ${d.lon}, ${d.nombre}`
+                                ? `${d.lat}, ${d.lon}, ${q}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`
+                                : `${d.lat}, ${d.lon}, ${q}`
                         );
                     });
                 } else {
