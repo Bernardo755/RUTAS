@@ -1,12 +1,65 @@
 <!DOCTYPE html>
+<!--
+=========================================================================
+ÍNDICE DEL CÓDIGO
+=========================================================================
+PARTE HTML / ESTILOS
+  1.  HEAD: metadatos, título y librería Leaflet CSS
+  2.  ESTILOS (CSS)
+      2.1  Variables y base general
+      2.2  Contenedores y paneles
+      2.3  Pestañas
+      2.4  Formularios y botones
+      2.5  Pestaña MAPA (acceso externo)
+      2.6  Mapas y paleta flotante de colores (KML)
+      2.7  Tablas, resultados y mensajes
+      2.8  Responsive
+  3.  PANEL PRINCIPAL (Gestor de procesos)
+      3.1  Selector de tarea
+      3.2  Opción 1: Proceso nuevo (Bitácora)
+      3.3  Opción 2: Consulta de procesos
+  4.  CONTENEDOR DE LA APP (pestañas)
+  5.  PESTAÑA 1: Ruta Múltiple
+  6.  PESTAÑA 2: EscxEsc (origen fijo a múltiples destinos)
+  7.  PESTAÑA 3: MAPA KML (incluye botón Google Maps)
+  8.  PESTAÑA 4: MAPA (abre app externa)
+
+PARTE JAVASCRIPT
+  J1. Configuración (URL Google Sheets y app externa)
+  J2. Variables globales
+  J3. Gestor principal (selector, proceso nuevo)
+  J4. Búsqueda en Base de Datos (toggleBD, extraerDeBD)  <-- MODIFICADO
+  J5. Procesos guardados y Bitácora
+  J6. Utilidades: mapa, pestañas, errores, URL Google Maps
+  J7. Pestaña 1: procesarRutaMultiple
+  J8. Pestaña 2: procesarRutaMasivaPuntoAPunto
+  J9. Pestaña 3: MAPA KML
+      J9.1  Variables y paleta
+      J9.2  Mapa de colores
+      J9.3  Iconos y escape HTML
+      J9.4  Paleta flotante
+      J9.5  Generación y descarga del KML
+      J9.6  procesarKML
+      J9.7  Botón Google Maps del KML  <-- NUEVO
+=========================================================================
+-->
 <html lang="es">
 <head>
+
+    <!-- =====================================================
+         1. HEAD
+         ===================================================== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor Avanzado de Rutas, Distancias y KML</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- =====================================================
+         2. ESTILOS (CSS)
+         ===================================================== -->
     <style>
+        /* ---------- 2.1 Variables y base general ---------- */
         :root {
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
@@ -33,6 +86,8 @@
             flex-direction: column;
             align-items: center;
         }
+
+        /* ---------- 2.2 Contenedores y paneles ---------- */
         .container {
             background: rgba(255,255,255,0.96);
             padding: 30px;
@@ -58,6 +113,8 @@
             border: 1px solid var(--border);
             box-shadow: 0 4px 14px rgba(15,23,42,0.04);
         }
+
+        /* ---------- 2.3 Pestañas ---------- */
         .tabs {
             display: flex;
             gap: 8px;
@@ -77,11 +134,7 @@
             font-size: 14px;
             transition: 0.2s;
         }
-        .tab-btn:hover {
-            background: #e2e8f0;
-            color: var(--text);
-            transform: translateY(-1px);
-        }
+        .tab-btn:hover { background: #e2e8f0; color: var(--text); transform: translateY(-1px); }
         .tab-btn.active {
             background: linear-gradient(135deg, var(--primary), #3b82f6);
             color: white;
@@ -89,13 +142,10 @@
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        h2 {
-            margin-top: 0;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 10px;
-            color: #172033;
-        }
+        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; color: #172033; }
         h3 { color: #334155; }
+
+        /* ---------- 2.4 Formularios y botones ---------- */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #334155; }
@@ -144,6 +194,8 @@
             background: linear-gradient(135deg, var(--primary-dark), var(--primary));
             transform: translateY(-1px);
         }
+
+        /* ---------- 2.5 Pestaña MAPA (acceso externo) ---------- */
         .mapa-acceso {
             min-height: 260px;
             display: flex;
@@ -157,12 +209,7 @@
             padding: 35px 25px;
         }
         .mapa-icono { font-size: 58px; margin-bottom: 10px; }
-        .mapa-acceso p {
-            color: var(--muted);
-            max-width: 620px;
-            line-height: 1.6;
-            margin: 5px auto 22px;
-        }
+        .mapa-acceso p { color: var(--muted); max-width: 620px; line-height: 1.6; margin: 5px auto 22px; }
         .btn-mapa-externo {
             display: inline-flex;
             align-items: center;
@@ -180,21 +227,14 @@
             box-shadow: 0 7px 18px rgba(20,184,166,0.22);
             transition: 0.2s;
         }
-        .btn-mapa-externo:hover {
-            background: linear-gradient(135deg, #115e59, #0f766e);
-            transform: translateY(-1px);
-        }
+        .btn-mapa-externo:hover { background: linear-gradient(135deg, #115e59, #0f766e); transform: translateY(-1px); }
+
+        /* ---------- 2.6 Mapas y paleta flotante (KML) ---------- */
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
         .map-header h3 { margin: 0; border: none; padding: 0; }
         #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); z-index: 1; }
 
-        /* =========================================================
-           PALETA FLOTANTE PARA MAPA KML
-           Una sola paleta reutilizable para el pin seleccionado
-           ========================================================= */
-        .kml-mapa-wrapper {
-            position: relative;
-        }
+        .kml-mapa-wrapper { position: relative; }
         .k-paleta-mapa {
             position: absolute;
             z-index: 1000;
@@ -220,11 +260,7 @@
             padding-bottom: 9px;
             border-bottom: 1px solid var(--border);
         }
-        .k-paleta-titulo span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        .k-paleta-titulo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .k-paleta-titulo button {
             width: 28px;
             height: 28px;
@@ -237,20 +273,9 @@
             line-height: 1;
             cursor: pointer;
         }
-        .k-paleta-titulo button:hover {
-            background: #e2e8f0;
-            color: #1e293b;
-        }
-        .k-paleta-subtitulo {
-            font-size: 12px;
-            color: var(--muted);
-            margin: 10px 0 8px;
-        }
-        .k-paleta-colores {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 7px;
-        }
+        .k-paleta-titulo button:hover { background: #e2e8f0; color: #1e293b; }
+        .k-paleta-subtitulo { font-size: 12px; color: var(--muted); margin: 10px 0 8px; }
+        .k-paleta-colores { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; }
         .k-paleta-color {
             width: 25px;
             height: 25px;
@@ -261,23 +286,14 @@
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             padding: 0;
         }
-        .k-paleta-color:hover {
-            transform: scale(1.18);
-        }
-        .k-paleta-color.selected {
-            box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary);
-            transform: scale(1.12);
-        }
+        .k-paleta-color:hover { transform: scale(1.18); }
+        .k-paleta-color.selected { box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary); transform: scale(1.12); }
         @media (max-width: 700px) {
-            .k-paleta-mapa {
-                width: 250px;
-                top: 12px;
-                left: 12px;
-            }
-            .k-paleta-colores {
-                grid-template-columns: repeat(7, 1fr);
-            }
+            .k-paleta-mapa { width: 250px; top: 12px; left: 12px; }
+            .k-paleta-colores { grid-template-columns: repeat(7, 1fr); }
         }
+
+        /* ---------- 2.7 Tablas, resultados y mensajes ---------- */
         .resultados { display: none; margin-top: 30px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
         th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
@@ -287,6 +303,8 @@
         .btn-link:hover { background: #15803d; }
         .error { color: var(--danger); font-weight: bold; margin-top: 10px; display: none; }
         .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
+
+        /* ---------- 2.8 Responsive ---------- */
         @media (max-width: 700px) {
             body { padding: 12px; }
             .container { padding: 18px; border-radius: 14px; }
@@ -299,10 +317,12 @@
 <body>
 
 <!-- ============================================== -->
-<!-- PANEL PRINCIPAL (GESTOR) -->
+<!-- 3. PANEL PRINCIPAL (GESTOR)                    -->
 <!-- ============================================== -->
 <div class="container panel-inicial">
     <h2>📋 Gestor de Procesos y Tareas</h2>
+
+    <!-- 3.1 Selector de tarea -->
     <div class="form-group">
         <label>¿Qué tarea vas a realizar hoy?</label>
         <select id="main-selector" onchange="manejarSeleccionPrincipal()">
@@ -313,7 +333,7 @@
         </select>
     </div>
 
-    <!-- Opción 1: Proceso Nuevo -->
+    <!-- 3.2 Opción 1: Proceso Nuevo -->
     <div id="panel-nuevo" class="seccion-dinamica" style="display:none;">
         <div class="grid">
             <div class="form-group">
@@ -328,37 +348,37 @@
         <button class="action-btn" onclick="iniciarProcesoNuevo()">Crear Proceso e Iniciar</button>
     </div>
 
-    <!-- Opción 2: Consulta -->
+    <!-- 3.3 Opción 2: Consulta -->
     <div id="panel-consulta" class="seccion-dinamica" style="display:none;">
         <button class="action-btn" style="background:#f4b400; color:#000;" onclick="cargarProcesosDesdeBD()">🔄 Descargar Procesos Guardados</button>
         <div id="loader-consulta" class="loader">Consultando base de datos...</div>
-        
+
         <div id="bloque-select-consulta" class="form-group" style="display:none; margin-top:15px;">
             <label>Selecciona un Proceso guardado:</label>
             <select id="select-consulta-procesos" onchange="cargarDetalleProceso(this.value)"></select>
         </div>
-        
+
         <div id="resultados-consulta" style="margin-top:20px; overflow-x: auto;"></div>
     </div>
 </div>
 
 <!-- ============================================== -->
-<!-- CONTENEDOR DE LA APP -->
+<!-- 4. CONTENEDOR DE LA APP (PESTAÑAS)             -->
 <!-- ============================================== -->
-<!-- Pestañas de Navegación -->
 <div id="app-container" class="container" style="display: none;">
-    
- <!-- Pestañas de Navegación -->
 
+    <!-- Pestañas de Navegación -->
     <div class="tabs">
         <button class="tab-btn active" onclick="cambiarPestana('multi')">📍 Ruta Múltiple</button>
         <button class="tab-btn" onclick="cambiarPestana('single')">➡️ EscxEsc</button>
         <button class="tab-btn" onclick="cambiarPestana('kml')">🗺️ MAPA KML</button>
         <button class="tab-btn" onclick="cambiarPestana('mapa')">🌐 MAPA</button>
-    </div> 
+    </div>
 
 
-    <!-- MODO 1: RUTA MÚLTIPLE -->
+    <!-- ============================================== -->
+    <!-- 5. PESTAÑA 1: RUTA MÚLTIPLE                    -->
+    <!-- ============================================== -->
     <div id="tab-multi" class="tab-content active">
         <h2>Generador de Rutas Múltiples (Secuencial)</h2>
         <h3>1. Punto de Partida</h3>
@@ -397,12 +417,15 @@
             </table>
             <div class="resumen" id="m_totalDistancia"></div>
             <div id="m_contenedorLinks" style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;"></div>
-            
+
             <div id="m_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
 
-    <!-- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS -->
+
+    <!-- ============================================== -->
+    <!-- 6. PESTAÑA 2: EscxEsc (ORIGEN → DESTINOS)      -->
+    <!-- ============================================== -->
     <div id="tab-single" class="tab-content">
         <h2>Rutas Individuales desde un Origen Fijo</h2>
         <h3>1. Punto de Partida Fijo</h3>
@@ -441,12 +464,15 @@
             </table>
             <div class="resumen" id="s_totalDistancia"></div>
             <div id="s_contenedorLinks" style="margin-top: 15px; display:flex; flex-direction:column; gap:10px;"></div>
-            
+
             <div id="s_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
 
-    <!-- MODO 3: MAPA KML -->
+
+    <!-- ============================================== -->
+    <!-- 7. PESTAÑA 3: MAPA KML                         -->
+    <!-- ============================================== -->
     <div id="tab-kml" class="tab-content">
         <h2>Generador de Puntos KML</h2>
         <div class="checkbox-group">
@@ -469,6 +495,7 @@
             <div class="kml-mapa-wrapper">
                 <div id="mapKml"></div>
 
+                <!-- Paleta flotante de colores -->
                 <div id="k_paletaMapa" class="k-paleta-mapa" style="display:none;">
                     <div class="k-paleta-titulo">
                         <span id="k_paletaPuntoNombre">Punto seleccionado</span>
@@ -483,13 +510,21 @@
                 <thead><tr><th>#</th><th>Nombre</th><th>Latitud</th><th>Longitud</th><th>Desc 1</th><th>Desc 2</th><th>Desc 3</th><th>Color</th></tr></thead>
                 <tbody id="k_tablaBody"></tbody>
             </table>
-            <a id="k_btnDescarga" class="btn-link" style="margin-top: 15px;" href="#" download="puntos.kml">📥 Descargar Archivo KML</a>
-            
+
+            <div style="margin-top: 15px; display:flex; flex-wrap:wrap; gap:10px;">
+                <a id="k_btnDescarga" class="btn-link" href="#" download="puntos.kml">📥 Descargar Archivo KML</a>
+
+                <!-- NUEVO: botón para visualizar en Google Maps -->
+                <button type="button" id="k_btnGoogleMaps" class="btn-link" style="border:none; cursor:pointer; background:#1a73e8;" onclick="abrirKmlEnGoogleMaps()">🌍 Ver en Google Maps</button>
+            </div>
+
             <div id="k_guardar_btn_box" style="margin-top:20px;"></div>
         </div>
     </div>
+
+
     <!-- ============================================== -->
-    <!-- MODO 4: MAPA - APERTURA DE APP EXTERNA -->
+    <!-- 8. PESTAÑA 4: MAPA (APERTURA DE APP EXTERNA)   -->
     <!-- ============================================== -->
     <div id="tab-mapa" class="tab-content">
         <h2>🌐 Acceso a la Aplicación de MAPA</h2>
@@ -518,16 +553,15 @@
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // ==========================================
-    // CONFIGURACIÓN DE CONEXIÓN A GOOGLE SHEETS
-    // ==========================================
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwb--hDzQtufC2X7uzT250nx7NDrX7BS_3Jo2dO0GGsN0pg5vSG1BCSmBTOqwadO5Dr/exec"; // <--- PEGA TU URL DE APPS SCRIPT AQUÍ
 
     // =========================================================
-    // CONFIGURACIÓN DE LA APP EXTERNA DE MAPA
+    // J1. CONFIGURACIÓN
     // =========================================================
-    // Coloca aquí la liga que me proporcionarás.
-    // La aplicación se abrirá DIRECTAMENTE, sin iframe.
+
+    // Conexión a Google Sheets (Apps Script)
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwb--hDzQtufC2X7uzT250nx7NDrX7BS_3Jo2dO0GGsN0pg5vSG1BCSmBTOqwadO5Dr/exec"; // <--- PEGA TU URL DE APPS SCRIPT AQUÍ
+
+    // App externa de MAPA (se abre directamente, sin iframe)
     const MAPA_APP_URL = "https://bernardo755.github.io/MAPA/";
 
     let ventanaMapa = null;
@@ -550,22 +584,28 @@
     }
 
 
+    // =========================================================
+    // J2. VARIABLES GLOBALES
+    // =========================================================
     let estadoActual = '';
     let procesoActivo = '';
     let subprocesoActivo = '';
     let tempDatosGuardar = null;
 
-   let mapMulti = null, mapSingle = null, mapKml = null;
+    let mapMulti = null, mapSingle = null, mapKml = null;
     let routeLayerMulti = null, markersMulti = [];
     let routeLayerSingle = [], markersSingle = [];
 
-    
+
+    // =========================================================
+    // J3. GESTOR PRINCIPAL (SELECTOR Y PROCESO NUEVO)
+    // =========================================================
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
         document.getElementById('panel-consulta').style.display = (val === 'consulta') ? 'block' : 'none';
         document.getElementById('app-container').style.display = (val === 'container') ? 'block' :'none';
-        
+
         if (val === 'libre') {
             estadoActual = 'libre';
             procesoActivo = ''; subprocesoActivo = '';
@@ -586,43 +626,91 @@
         setTimeout(() => { if(mapMulti) mapMulti.invalidateSize(); }, 300);
     }
 
+
+    // =========================================================
+    // J4. BÚSQUEDA EN BASE DE DATOS (MODIFICADO)
+    // =========================================================
+
+    // Alterna entre ingreso manual y búsqueda por ID en BD
     function toggleBD(modo) {
         let isDB = document.querySelector(`input[name="${modo}_tipo"]:checked`).value === 'db';
         document.getElementById(`${modo}_btn_bd`).style.display = isDB ? 'block' : 'none';
         let txt = document.getElementById(modo === 'm' ? 'm_waypoints' : (modo === 's' ? 's_destinos' : 'k_datos'));
-        txt.placeholder = isDB 
-            ? "Ingresa aquí los ID a buscar en la Base (uno por línea)..." 
+        txt.placeholder = isDB
+            ? "Ingresa aquí los ID a buscar en la Base (uno por línea)..."
             : "Formato manual (Latitud, Longitud, Nombre...)";
     }
 
+    /*
+       Busca cada valor por separado y respeta el MISMO ORDEN en que se ingresaron.
+       - Si lo encuentra: inserta los datos de la base.
+       - Si NO lo encuentra: NO lo elimina; conserva el valor que escribiste
+         (en la columna Nombre, después de las coordenadas) y pone "NO ENCONTRADO"
+         en los demás campos.
+    */
     async function extraerDeBD(modo) {
+        const NO_ENC = 'NO ENCONTRADO';
         let txt = document.getElementById(modo === 'm' ? 'm_waypoints' : (modo === 's' ? 's_destinos' : 'k_datos'));
         let queries = txt.value.trim().split('\n').map(q => q.trim()).filter(q => q);
-        
+
         if(queries.length === 0) {
             alert("Ingresa al menos un valor para buscar."); return;
         }
 
         document.getElementById(modo+'_loader').style.display = 'block';
         document.getElementById(modo+'_loader').innerText = "Buscando en registros... ⏳";
-        
-        try {
-            let url = SCRIPT_URL + "?action=searchDB&queries=" + encodeURIComponent(JSON.stringify(queries));
-            let response = await fetch(url);
-            let result = await response.json();
 
-            if (result.status === 'success' && result.data.length > 0) {
-                let lines = result.data.map(d => {
-                    return (modo === 'k') 
-                        ? `${d.lat}, ${d.lon}, ${d.nombre}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`
-                        : `${d.lat}, ${d.lon}, ${d.nombre}`;
-                });
-                txt.value = lines.join('\n');
-                alert(`¡Se encontraron ${result.data.length} coincidencias!\nLos datos se han insertado correctamente.`);
-                document.querySelector(`input[name="${modo}_tipo"][value="manual"]`).click();
-            } else {
-                alert("No se encontraron coincidencias en los registros.");
+        try {
+            // Una consulta por cada valor, en paralelo; Promise.all conserva el orden original
+            let respuestas = await Promise.all(queries.map(async q => {
+                try {
+                    let url = SCRIPT_URL + "?action=searchDB&queries=" + encodeURIComponent(JSON.stringify([q]));
+                    let response = await fetch(url);
+                    let result = await response.json();
+                    if (result.status === 'success' && result.data && result.data.length > 0) {
+                        return { ok: true, data: result.data };
+                    }
+                    return { ok: true, data: [] };
+                } catch (err) {
+                    return { ok: false, data: [] };
+                }
+            }));
+
+            if (respuestas.every(r => !r.ok)) {
+                throw new Error("Sin conexión con la base de datos.");
             }
+
+            let lines = [];
+            let encontrados = 0, noEncontrados = 0;
+
+            respuestas.forEach((r, i) => {
+                let q = queries[i];
+
+                if (r.data.length > 0) {
+                    encontrados++;
+                    r.data.forEach(d => {
+                        lines.push(
+                            (modo === 'k')
+                                ? `${d.lat}, ${d.lon}, ${d.nombre}, ${d.desc1}, ${d.desc2}, ${d.desc3}, blue`
+                                : `${d.lat}, ${d.lon}, ${d.nombre}`
+                        );
+                    });
+                } else {
+                    noEncontrados++;
+                    // Se conserva el valor ingresado y el resto se marca como NO ENCONTRADO
+                    lines.push(
+                        (modo === 'k')
+                            ? `${NO_ENC}, ${NO_ENC}, ${q}, ${NO_ENC}, ${NO_ENC}, ${NO_ENC}, blue`
+                            : `${NO_ENC}, ${NO_ENC}, ${q}`
+                    );
+                }
+            });
+
+            txt.value = lines.join('\n');
+
+            alert(`Búsqueda terminada.\nEncontrados: ${encontrados}\nNo encontrados: ${noEncontrados}\nLos datos se han insertado en el mismo orden.`);
+            document.querySelector(`input[name="${modo}_tipo"][value="manual"]`).click();
+
         } catch (error) {
             console.error(error);
             alert("Error de conexión al consultar la base de datos.");
@@ -632,15 +720,19 @@
         }
     }
 
+
+    // =========================================================
+    // J5. PROCESOS GUARDADOS Y BITÁCORA
+    // =========================================================
     async function cargarProcesosDesdeBD() {
         document.getElementById('loader-consulta').style.display = 'block';
         document.getElementById('bloque-select-consulta').style.display = 'none';
         document.getElementById('resultados-consulta').innerHTML = '';
-        
+
         try {
             let response = await fetch(SCRIPT_URL + "?action=getProcesos");
             let result = await response.json();
-            
+
             if(result.status === 'success') {
                 let select = document.getElementById('select-consulta-procesos');
                 select.innerHTML = '<option value="">Selecciona un proceso...</option>';
@@ -662,7 +754,7 @@
         try {
             let response = await fetch(SCRIPT_URL + "?action=getDetalleProceso&proceso=" + encodeURIComponent(procesoNombre));
             let result = await response.json();
-            
+
             if(result.status === 'success') {
                 let html = `<h3>Registros de: ${procesoNombre}</h3><table><thead><tr><th>Fecha</th><th>Sub-Proceso</th><th>Modo</th><th>Resumen</th><th>Enlace Ruta</th></tr></thead><tbody>`;
                 result.data.forEach(row => {
@@ -694,98 +786,103 @@
         }
     }
 
+    async function enviarABitacora() {
+        if(!tempDatosGuardar || !procesoActivo) return;
 
-async function enviarABitacora() {
-    if(!tempDatosGuardar || !procesoActivo) return;
+        // Si es un objeto individual (Módulo 1) lo envuelve en un arreglo; si ya es arreglo (Módulo 2) lo mantiene
+        let listaAEnviar = Array.isArray(tempDatosGuardar) ? tempDatosGuardar : [tempDatosGuardar];
 
-    // 🟢 Si es un objeto individual (Módulo 1) lo envuelve en un arreglo; si ya es arreglo (Módulo 2) lo mantiene
-    let listaAEnviar = Array.isArray(tempDatosGuardar) ? tempDatosGuardar : [tempDatosGuardar];
+        if (listaAEnviar.length === 0) return;
 
-    if (listaAEnviar.length === 0) return;
+        try {
+            // Una petición HTTP independiente por cada punto/destino
+            let promesasEnvio = listaAEnviar.map(item => {
+                let payload = {
+                    proceso: procesoActivo,
+                    subproceso: subprocesoActivo,
+                    modo: item.modoApp,
+                    resumen: item.resumen,
+                    linkRuta: item.linkRuta,
+                    datosJSON: JSON.stringify(item.datos)
+                };
 
-    try {
-        // 🟢 Generar una petición HTTP independiente por cada punto/destino
-        let promesasEnvio = listaAEnviar.map(item => {
-            let payload = {
-                proceso: procesoActivo,
-                subproceso: subprocesoActivo,
-                modo: item.modoApp,
-                resumen: item.resumen,
-                linkRuta: item.linkRuta,
-                datosJSON: JSON.stringify(item.datos)
-            };
+                let formData = new URLSearchParams();
+                formData.append('action', 'saveBitacora');
+                formData.append('payload', JSON.stringify(payload));
 
-            let formData = new URLSearchParams();
-            formData.append('action', 'saveBitacora');
-            formData.append('payload', JSON.stringify(payload));
-
-            return fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData
+                return fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
             });
-        });
 
-        // Esperar a que se envíen todos los registros
-        await Promise.all(promesasEnvio);
+            // Esperar a que se envíen todos los registros
+            await Promise.all(promesasEnvio);
 
-        alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nSe registraron ${listaAEnviar.length} punto(s) de forma independiente en la bitácora.`);
-    } catch(e) {
-        alert("Error al guardar en la bitácora.");
-        console.error(e);
+            alert(`¡Guardado exitoso!\nProceso: ${procesoActivo}\nSe registraron ${listaAEnviar.length} punto(s) de forma independiente en la bitácora.`);
+        } catch(e) {
+            alert("Error al guardar en la bitácora.");
+            console.error(e);
+        }
     }
-}
 
-   function inicializarMapa(idContenedor, lat, lon) {
+
+    // =========================================================
+    // J6. UTILIDADES: MAPA, PESTAÑAS, ERRORES, URL GOOGLE MAPS
+    // =========================================================
+    function inicializarMapa(idContenedor, lat, lon) {
         let m = L.map(idContenedor).setView([lat, lon], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
         return m;
     }
 
-function cambiarPestana(tipo) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
-    if(tipo === 'multi') {
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-        document.getElementById('tab-multi').classList.add('active');
-        // ESTA ES LA LÍNEA CLAVE PARA LA PESTAÑA 1
-        if(mapMulti) mapMulti.invalidateSize(); 
-    } else if(tipo === 'single') {
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        document.getElementById('tab-single').classList.add('active');
-        // ESTA ES LA LÍNEA CLAVE PARA LA PESTAÑA 2
-        if(mapSingle) mapSingle.invalidateSize(); 
-    } else if(tipo === 'kml') {
-        document.querySelectorAll('.tab-btn')[2].classList.add('active');
-        document.getElementById('tab-kml').classList.add('active');
-        if(mapKml) mapKml.invalidateSize(); 
-    } else if(tipo === 'mapa') {
-        document.querySelectorAll('.tab-btn')[3].classList.add('active');
-        document.getElementById('tab-mapa').classList.add('active');
+    function cambiarPestana(tipo) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        if(tipo === 'multi') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-multi').classList.add('active');
+            if(mapMulti) mapMulti.invalidateSize();
+        } else if(tipo === 'single') {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-single').classList.add('active');
+            if(mapSingle) mapSingle.invalidateSize();
+        } else if(tipo === 'kml') {
+            document.querySelectorAll('.tab-btn')[2].classList.add('active');
+            document.getElementById('tab-kml').classList.add('active');
+            if(mapKml) mapKml.invalidateSize();
+        } else if(tipo === 'mapa') {
+            document.querySelectorAll('.tab-btn')[3].classList.add('active');
+            document.getElementById('tab-mapa').classList.add('active');
+        }
     }
-}
+
     function mostrarError(modo, msg) {
         let el = document.getElementById(modo + '_errorMsg');
         el.innerText = msg;
         el.style.display = 'block';
- }
+    }
 
-    // GENERAR URL GOOGLE MAPS DIRECTA
+    // Genera URL de Google Maps (origen, destino y paradas intermedias)
     function generarGoogleMapsUrl(puntos) {
         if (puntos.length < 2) return '';
         let origen = `${puntos[0].lat},${puntos[0].lon}`;
         let destino = `${puntos[puntos.length - 1].lat},${puntos[puntos.length - 1].lon}`;
         let waypoints = puntos.slice(1, -1).map(p => `${p.lat},${p.lon}`).join('|');
-        
+
         let url = `https://www.google.com/maps/dir/?api=1&origin=${origen}&destination=${destino}`;
         if (waypoints) url += `&waypoints=${waypoints}`;
         return url;
     }
 
-// --- MODO 1: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
-async function procesarRutaMultiple() {
+
+    // =========================================================
+    // J7. PESTAÑA 1: RUTA MÚLTIPLE
+    // =========================================================
+    async function procesarRutaMultiple() {
 
         document.getElementById('m_errorMsg').style.display = 'none';
         document.getElementById('m_resultados').style.display = 'none';
@@ -796,7 +893,7 @@ async function procesarRutaMultiple() {
         let puntos = [{ lat: oLat, lon: oLon, nombre: document.getElementById('m_nombreOrigen').value.trim() || 'Origen' }];
         const lineas = document.getElementById('m_waypoints').value.trim().split('\n');
         lineas.forEach((linea, idx) => {
-         const p = linea.split(/,|\t/).map(x => x.trim());
+            const p = linea.split(/,|\t/).map(x => x.trim());
             if(p.length >= 2) puntos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Parada ${idx+1}` });
         });
         if (document.getElementById('m_regreso').checked) puntos.push({ lat: oLat, lon: oLon, nombre: 'Regreso a Origen' });
@@ -834,11 +931,11 @@ async function procesarRutaMultiple() {
                 markersMulti.push(m);
             });
             // Asignar datos temporales para bitácora
-            tempDatosGuardar = { 
-                modoApp: 'Ruta Múltiple', 
+            tempDatosGuardar = {
+                modoApp: 'Ruta Múltiple',
                 resumen: `Distancia: ${distTotalKm} km | Paradas: ${puntos.length}`,
                 linkRuta: linkMaps,
-                datos: { distanciaGlobal: distTotalKm, paradas: puntos.length, puntosRecorridos: puntos.map(p=>p.nombre) } 
+                datos: { distanciaGlobal: distTotalKm, paradas: puntos.length, puntosRecorridos: puntos.map(p=>p.nombre) }
             };
             renderizarBotonGuardar('m');
         } catch(e) {
@@ -847,136 +944,133 @@ async function procesarRutaMultiple() {
     }
 
 
-// --- MODO 2: RUTA ORIGEN A UN DESTINO ---
-// --- MODO 2: RUTA ORIGEN A MÚLTIPLES DESTINOS ---
-async function procesarRutaMasivaPuntoAPunto() {
-    document.getElementById('s_errorMsg').style.display = 'none';
-    document.getElementById('s_resultados').style.display = 'none';
-    document.getElementById('s_loader').style.display = 'block';
+    // =========================================================
+    // J8. PESTAÑA 2: EscxEsc (ORIGEN FIJO → MÚLTIPLES DESTINOS)
+    // =========================================================
+    async function procesarRutaMasivaPuntoAPunto() {
+        document.getElementById('s_errorMsg').style.display = 'none';
+        document.getElementById('s_resultados').style.display = 'none';
+        document.getElementById('s_loader').style.display = 'block';
 
-    const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
-    const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
-    if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); document.getElementById('s_loader').style.display = 'none'; return; }
+        const oLat = parseFloat(document.getElementById('s_origenLat').value.replace(',', '.'));
+        const oLon = parseFloat(document.getElementById('s_origenLon').value.replace(',', '.'));
+        if (isNaN(oLat) || isNaN(oLon)) { mostrarError('s', "Coordenadas de origen inválidas."); document.getElementById('s_loader').style.display = 'none'; return; }
 
-    const incluirRegreso = document.getElementById('s_regreso') ? document.getElementById('s_regreso').checked : false;
+        const incluirRegreso = document.getElementById('s_regreso') ? document.getElementById('s_regreso').checked : false;
 
-    let destinos = [];
-    document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
-        let p = l.split(/,|\t/).map(x => x.trim());
-        if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
-    });
-
-    let promesas = destinos.map(d => {
-        let coordsString = incluirRegreso 
-            ? `${oLon},${oLat};${d.lon},${d.lat};${oLon},${oLat}`
-            : `${oLon},${oLat};${d.lon},${d.lat}`;
-
-        return fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`)
-            .then(r => r.json())
-            .then(data => ({ d, data }));
-    });
-
-    try {
-        let resultados = await Promise.all(promesas);
-        let tbody = document.getElementById('s_tablaBody'); tbody.innerHTML = '';
-        let tDist = 0, tTime = 0;
-        
-        // 🟢 Estructura para almacenar cada ruta punto por punto de forma individual
-        let listaRegistrosGuardar = [];
-
-        // =========================================================================
-        // CAMBIO AQUÍ: 1. PRIMERO HACEMOS VISIBLE EL CONTENEDOR DE RESULTADOS
-        // =========================================================================
-        document.getElementById('s_resultados').style.display = 'block';
-
-        if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
-        routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
-        markersSingle.forEach(m => mapSingle.removeLayer(m)); markersSingle = [];
-        let bounds = [[oLat, oLon]];
-        markersSingle.push(L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>ORIGEN</b>`));
-
-        resultados.forEach((item, idx) => {
-            if(item.data.code === 'Ok') {
-                let route = item.data.routes[0];
-                let d = item.d;
-                let km = route.distance / 1000;
-                let mn = route.duration / 60;
-                tDist += km; tTime += mn;
-                
-                let linkIndividualMaps = incluirRegreso 
-                    ? `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${oLat},${oLon}&waypoints=${d.lat},${d.lon}&travelmode=driving`
-                    : `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${idx+1}</td>
-                        <td><strong>${d.nombre}</strong> ${incluirRegreso ? '<small style="color:#666;">(Ida y vuelta)</small>' : ''}</td>
-                        <td>${d.lat}</td>
-                        <td>${d.lon}</td>
-                        <td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td>
-                        <td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td>
-                        <td>
-                            <a href="${linkIndividualMaps}" target="_blank" class="btn btn-sm btn-outline-primary" style="text-decoration:none; font-size:12px;">
-                                🗺️ Abrir Mapa
-                            </a>
-                        </td>
-                    </tr>`;
-                
-                bounds.push([d.lat, d.lon]);
-                markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
-                
-                let poly = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
-                routeLayerSingle.push(poly);
-
-                // 🟢 Se genera el objeto individual para la bitácora
-                listaRegistrosGuardar.push({
-                    modoApp: 'Múltiples Destinos',
-                    resumen: `Destino: ${d.nombre} | Distancia: ${km.toFixed(2)} km | Tiempo: ${Math.round(mn)} min${incluirRegreso ? ' (Ida y vuelta)' : ''}`,
-                    linkRuta: linkIndividualMaps,
-                    datos: {
-                        destino: d.nombre,
-                        latitud: d.lat,
-                        longitud: d.lon,
-                        distanciaKm: km.toFixed(2),
-                        tiempoMin: Math.round(mn),
-                        viajeRedondo: incluirRegreso
-                    }
-                });
-            }
+        let destinos = [];
+        document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
+            let p = l.split(/,|\t/).map(x => x.trim());
+            if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
         });
 
-        // =========================================================================
-        // CAMBIO AQUÍ: 2. ESPERAMOS 100ms Y FORZAMOS EL RECALCULO DE LEAFLET
-        // =========================================================================
-        setTimeout(() => {
-            mapSingle.invalidateSize();
-            mapSingle.fitBounds(bounds, { padding: [30, 30] });
-        }, 100);
+        let promesas = destinos.map(d => {
+            let coordsString = incluirRegreso
+                ? `${oLon},${oLat};${d.lon},${d.lat};${oLon},${oLat}`
+                : `${oLon},${oLat};${d.lon},${d.lat}`;
 
-        let sumaKm = tDist.toFixed(2);
-        document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
+            return fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`)
+                .then(r => r.json())
+                .then(data => ({ d, data }));
+        });
 
-        document.getElementById('s_contenedorLinks').innerHTML = '';
+        try {
+            let resultados = await Promise.all(promesas);
+            let tbody = document.getElementById('s_tablaBody'); tbody.innerHTML = '';
+            let tDist = 0, tTime = 0;
 
-        // 🟢 Asignamos el arreglo completo de registros a la variable temporal
-        tempDatosGuardar = listaRegistrosGuardar;
-        renderizarBotonGuardar('s');
+            // Estructura para almacenar cada ruta punto por punto de forma individual
+            let listaRegistrosGuardar = [];
 
-    } catch(e) { mostrarError('s', "Error al calcular distancias."); } 
-    finally { document.getElementById('s_loader').style.display = 'none'; }
-}
+            // 1. PRIMERO HACEMOS VISIBLE EL CONTENEDOR DE RESULTADOS
+            document.getElementById('s_resultados').style.display = 'block';
 
+            if (!mapSingle) mapSingle = inicializarMapa('mapSingle', oLat, oLon);
+            routeLayerSingle.forEach(l => mapSingle.removeLayer(l)); routeLayerSingle = [];
+            markersSingle.forEach(m => mapSingle.removeLayer(m)); markersSingle = [];
+            let bounds = [[oLat, oLon]];
+            markersSingle.push(L.marker([oLat, oLon]).addTo(mapSingle).bindPopup(`<b>ORIGEN</b>`));
+
+            resultados.forEach((item, idx) => {
+                if(item.data.code === 'Ok') {
+                    let route = item.data.routes[0];
+                    let d = item.d;
+                    let km = route.distance / 1000;
+                    let mn = route.duration / 60;
+                    tDist += km; tTime += mn;
+
+                    let linkIndividualMaps = incluirRegreso
+                        ? `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${oLat},${oLon}&waypoints=${d.lat},${d.lon}&travelmode=driving`
+                        : `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLon}&destination=${d.lat},${d.lon}&travelmode=driving`;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${idx+1}</td>
+                            <td><strong>${d.nombre}</strong> ${incluirRegreso ? '<small style="color:#666;">(Ida y vuelta)</small>' : ''}</td>
+                            <td>${d.lat}</td>
+                            <td>${d.lon}</td>
+                            <td style="color:#1a73e8; font-weight:bold;">${km.toFixed(2)} km</td>
+                            <td style="color:#e37400; font-weight:bold;">${Math.round(mn)} min</td>
+                            <td>
+                                <a href="${linkIndividualMaps}" target="_blank" class="btn btn-sm btn-outline-primary" style="text-decoration:none; font-size:12px;">
+                                    🗺️ Abrir Mapa
+                                </a>
+                            </td>
+                        </tr>`;
+
+                    bounds.push([d.lat, d.lon]);
+                    markersSingle.push(L.marker([d.lat, d.lon]).addTo(mapSingle).bindPopup(`${d.nombre}<br>${km.toFixed(2)}km`));
+
+                    let poly = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), {color:'#1a73e8', weight:4, opacity:0.7}).addTo(mapSingle);
+                    routeLayerSingle.push(poly);
+
+                    // Objeto individual para la bitácora
+                    listaRegistrosGuardar.push({
+                        modoApp: 'Múltiples Destinos',
+                        resumen: `Destino: ${d.nombre} | Distancia: ${km.toFixed(2)} km | Tiempo: ${Math.round(mn)} min${incluirRegreso ? ' (Ida y vuelta)' : ''}`,
+                        linkRuta: linkIndividualMaps,
+                        datos: {
+                            destino: d.nombre,
+                            latitud: d.lat,
+                            longitud: d.lon,
+                            distanciaKm: km.toFixed(2),
+                            tiempoMin: Math.round(mn),
+                            viajeRedondo: incluirRegreso
+                        }
+                    });
+                }
+            });
+
+            // 2. ESPERAMOS 100ms Y FORZAMOS EL RECÁLCULO DE LEAFLET
+            setTimeout(() => {
+                mapSingle.invalidateSize();
+                mapSingle.fitBounds(bounds, { padding: [30, 30] });
+            }, 100);
+
+            let sumaKm = tDist.toFixed(2);
+            document.getElementById('s_totalDistancia').innerHTML = `Suma de Distancias: ${sumaKm} km | Tiempo acumulado: ${Math.round(tTime)} min`;
+
+            document.getElementById('s_contenedorLinks').innerHTML = '';
+
+            // Asignamos el arreglo completo de registros a la variable temporal
+            tempDatosGuardar = listaRegistrosGuardar;
+            renderizarBotonGuardar('s');
+
+        } catch(e) { mostrarError('s', "Error al calcular distancias."); }
+        finally { document.getElementById('s_loader').style.display = 'none'; }
+    }
 
 
     // =========================================================
-    // MODO 3 - MAPA KML
+    // J9. PESTAÑA 3: MAPA KML
     // =========================================================
+
+    // ---------- J9.1 Variables y paleta ----------
     let kmlPuntos = [];
     let markersKml = [];
     let puntoKmlSeleccionado = null;
 
-    // Colores que se muestran en la paleta.
-    // Se utiliza un solo nombre por color para evitar duplicados.
+    // Colores que se muestran en la paleta (un solo nombre por color)
     const PALETA_UI = [
         'rojo', 'carmesi', 'borgoña', 'rosa', 'magenta',
         'naranja', 'salmón', 'coral', 'amarillo', 'dorado',
@@ -985,6 +1079,7 @@ async function procesarRutaMasivaPuntoAPunto() {
         'marron', 'chocolate', 'blanco', 'gris', 'plateado', 'negro'
     ];
 
+    // ---------- J9.2 Mapa de colores (hex para el mapa web, abgr para el KML) ----------
     const mapaColores = {
             // --- Rojos ---
             'rojo':       { hex: '#e74c3c', abgr: 'ff3c4ce7' },
@@ -1058,7 +1153,8 @@ async function procesarRutaMasivaPuntoAPunto() {
         return mapaColores[key] || mapaColores['azul'];
     }
 
-    // Crea un marcador SVG puro para Leaflet.
+    // ---------- J9.3 Iconos y escape HTML ----------
+    // Crea un marcador SVG puro para Leaflet
     function crearIconoSVG(colorHex) {
         let svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="30" height="42">
@@ -1083,6 +1179,7 @@ async function procesarRutaMasivaPuntoAPunto() {
             .replace(/'/g, '&#039;');
     }
 
+    // ---------- J9.4 Paleta flotante ----------
     function abrirPaletaMapa(idx) {
         if (!kmlPuntos[idx]) return;
 
@@ -1128,12 +1225,12 @@ async function procesarRutaMasivaPuntoAPunto() {
         kmlPuntos[idx].col = colorKey;
         const colorObj = obtenerColor(colorKey);
 
-        // Actualizar el pin visible en el mapa.
+        // Actualizar el pin visible en el mapa
         if (markersKml[idx]) {
             markersKml[idx].setIcon(crearIconoSVG(colorObj.hex));
         }
 
-        // Actualizar el color mostrado en la tabla.
+        // Actualizar el color mostrado en la tabla
         const filas = document.querySelectorAll('#k_tablaBody tr');
         if (filas[idx]) {
             const celdas = filas[idx].querySelectorAll('td');
@@ -1142,10 +1239,10 @@ async function procesarRutaMasivaPuntoAPunto() {
             }
         }
 
-        // Regenerar inmediatamente el archivo KML descargable.
+        // Regenerar inmediatamente el archivo KML descargable
         actualizarDescargaKml();
 
-        // Mantener abierta la misma paleta, ahora mostrando el nuevo color seleccionado.
+        // Mantener abierta la misma paleta, mostrando el nuevo color seleccionado
         abrirPaletaMapa(idx);
     }
 
@@ -1155,6 +1252,7 @@ async function procesarRutaMasivaPuntoAPunto() {
         puntoKmlSeleccionado = null;
     }
 
+    // ---------- J9.5 Generación y descarga del KML ----------
     function generarKmlContent(puntos) {
         return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -1193,7 +1291,7 @@ async function procesarRutaMasivaPuntoAPunto() {
         const enlace = document.getElementById('k_btnDescarga');
         if (!enlace) return;
 
-        // Liberar el Blob anterior para evitar acumular memoria.
+        // Liberar el Blob anterior para evitar acumular memoria
         if (enlace.dataset.blobUrl) {
             URL.revokeObjectURL(enlace.dataset.blobUrl);
         }
@@ -1203,6 +1301,7 @@ async function procesarRutaMasivaPuntoAPunto() {
         enlace.dataset.blobUrl = url;
     }
 
+    // ---------- J9.6 procesarKML ----------
     function procesarKML() {
         document.getElementById('k_errorMsg').style.display = 'none';
         document.getElementById('k_resultados').style.display = 'none';
@@ -1218,9 +1317,6 @@ async function procesarRutaMasivaPuntoAPunto() {
         kmlPuntos = [];
         let tbody = document.getElementById('k_tablaBody');
         tbody.innerHTML = '';
-
-        // Mapa de colores: Hexadecimal para el mapa web y ABGR para el KML.
-
 
         lineas.forEach((l, i) => {
             let p = l.split(/,|\t/).map(x => x.trim());
@@ -1257,10 +1353,10 @@ async function procesarRutaMasivaPuntoAPunto() {
             return;
         }
 
-        // Crear el primer KML descargable.
+        // Crear el primer KML descargable
         actualizarDescargaKml();
 
-        // Mostrar primero el contenedor para que Leaflet calcule correctamente su tamaño.
+        // Mostrar primero el contenedor para que Leaflet calcule correctamente su tamaño
         document.getElementById('k_resultados').style.display = 'block';
 
         if (!mapKml) {
@@ -1274,7 +1370,7 @@ async function procesarRutaMasivaPuntoAPunto() {
         setTimeout(() => {
             mapKml.invalidateSize();
 
-            // Limpiar solamente los marcadores anteriores.
+            // Limpiar solamente los marcadores anteriores
             markersKml.forEach(m => mapKml.removeLayer(m));
             markersKml = [];
 
@@ -1293,7 +1389,7 @@ async function procesarRutaMasivaPuntoAPunto() {
                     { icon: crearIconoSVG(colorObj.hex) }
                 ).addTo(mapKml);
 
-                // Un clic en el pin abre la única paleta flotante reutilizable.
+                // Un clic en el pin abre la única paleta flotante reutilizable
                 marcador.on('click', function () {
                     this.closePopup();
                     abrirPaletaMapa(idx);
@@ -1337,8 +1433,40 @@ async function procesarRutaMasivaPuntoAPunto() {
         renderizarBotonGuardar('k');
     }
 
+    // ---------- J9.7 Botón Google Maps del KML (NUEVO) ----------
+    /*
+       - 1 punto: abre Google Maps centrado en ese punto.
+       - 2 o más puntos: abre Google Maps con todos los puntos en el orden
+         de la tabla (Google permite máximo 10 puntos por enlace; si hay más,
+         se usan los primeros 10).
+    */
+    function abrirKmlEnGoogleMaps() {
+        if (!kmlPuntos || kmlPuntos.length === 0) {
+            alert("Primero genera el mapa KML.");
+            return;
+        }
 
+        if (kmlPuntos.length === 1) {
+            window.open(
+                `https://www.google.com/maps/search/?api=1&query=${kmlPuntos[0].lat},${kmlPuntos[0].lon}`,
+                '_blank'
+            );
+            return;
+        }
 
+        let puntos = kmlPuntos;
+
+        if (puntos.length > 10) {
+            alert("Google Maps permite máximo 10 puntos por enlace. Se abrirán los primeros 10.\nPara ver todos con sus colores, descarga el KML e impórtalo en Google My Maps (mymaps.google.com).");
+            puntos = puntos.slice(0, 10);
+        }
+
+        let url = generarGoogleMapsUrl(
+            puntos.map(p => ({ lat: p.lat, lon: p.lon }))
+        );
+
+        window.open(url, '_blank');
+    }
 
 </script>
 </body>
