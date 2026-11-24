@@ -5,7 +5,8 @@
 =========================================================================
 PARTE HTML / ESTILOS
   1.  HEAD: metadatos, título y librería Leaflet CSS
-  2.  ESTILOS (CSS)
+  2.  ESTILOS (CSS) – diseño moderno
+  2B. BARRA SUPERIOR
       2.1  Variables y base general
       2.2  Contenedores y paneles
       2.3  Pestañas
@@ -52,6 +53,8 @@ PARTE JAVASCRIPT
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor Avanzado de Rutas, Distancias y KML</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -59,262 +62,275 @@ PARTE JAVASCRIPT
          2. ESTILOS (CSS)
          ===================================================== -->
     <style>
-        /* ---------- 2.1 Variables y base general ---------- */
+        /* =====================================================
+           2. ESTILOS – DISEÑO ULTRA MODERNO
+           Glassmorphism · modo oscuro automático · microanimaciones
+           ===================================================== */
+
+        /* ---------- 2.1 Variables y base ---------- */
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --accent: #14b8a6;
-            --accent-dark: #0f766e;
-            --bg: #f4f7fb;
-            --surface: #ffffff;
-            --surface-soft: #f8fafc;
-            --border: #dbe3ee;
-            --text: #172033;
+            --bg: #f3f6fd;
+            --card: rgba(255,255,255,.72);
+            --card-solid: #ffffff;
+            --soft: rgba(241,245,255,.8);
+            --border: rgba(148,163,184,.28);
+            --text: #0f172a;
             --muted: #64748b;
-            --success: #16a34a;
-            --warning: #d97706;
-            --danger: #dc2626;
+            --primary: #6366f1;
+            --primary-2: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --chip: rgba(99,102,241,.08);
+            --chip-text: #4338ca;
+            --shadow: 0 10px 40px -12px rgba(30,41,90,.18);
+            --glow: 0 8px 24px -6px rgba(99,102,241,.55);
+            --radius: 20px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0a0d1a;
+                --card: rgba(22,27,48,.72);
+                --card-solid: #141935;
+                --soft: rgba(30,36,64,.7);
+                --border: rgba(148,163,184,.16);
+                --text: #e8ecfb;
+                --muted: #94a3b8;
+                --chip: rgba(129,140,248,.14);
+                --chip-text: #c7d2fe;
+                --shadow: 0 14px 50px -14px rgba(0,0,0,.7);
+            }
         }
         * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 55%, #ecfeff 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 24px;
+            padding: 0 24px 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
+        /* Fondo aurora */
+        body::before, body::after {
+            content: ""; position: fixed; z-index: -1; border-radius: 50%;
+            filter: blur(90px); opacity: .55; pointer-events: none;
+        }
+        body::before { width: 520px; height: 520px; top: -160px; left: -120px; background: radial-gradient(circle, #818cf8, transparent 70%); }
+        body::after  { width: 560px; height: 560px; bottom: -200px; right: -140px; background: radial-gradient(circle, #22d3ee, transparent 70%); }
+        @media (prefers-color-scheme: dark) { body::before, body::after { opacity: .28; } }
 
-        /* ---------- 2.2 Contenedores y paneles ---------- */
-        .container {
-            background: rgba(255,255,255,0.96);
-            padding: 30px;
-            border-radius: 18px;
-            box-shadow: 0 12px 35px rgba(15,23,42,0.08);
-            border: 1px solid rgba(219,227,238,0.9);
-            max-width: 1000px;
-            width: 100%;
-            margin-bottom: 20px;
+        /* ---------- 2.2 Barra superior ---------- */
+        .topbar {
+            width: 100%; max-width: 1100px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 4px 18px;
         }
-        .panel-inicial {
-            background: linear-gradient(135deg, #eff6ff, #f0fdfa);
-            padding: 22px;
-            border-radius: 14px;
-            border: 1px solid #cbdcf7;
-            margin-bottom: 20px;
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .logo {
+            width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2) 55%, var(--accent));
+            box-shadow: var(--glow); color: #fff;
         }
-        .seccion-dinamica {
-            background: var(--surface);
-            padding: 18px;
-            border-radius: 12px;
-            margin-top: 15px;
+        .logo svg { width: 24px; height: 24px; }
+        .brand-title { font-size: 20px; font-weight: 800; letter-spacing: -.4px; }
+        .brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; letter-spacing: .3px; }
+        .status-pill {
+            display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+            background: var(--card); border: 1px solid var(--border); font-size: 12px; font-weight: 600;
+            backdrop-filter: blur(12px); color: var(--muted);
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 0 rgba(16,185,129,.6); animation: pulso 2s infinite; }
+        @keyframes pulso { 70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+
+        /* ---------- 2.3 Contenedores ---------- */
+        .container, .panel-inicial {
+            background: var(--card);
+            backdrop-filter: blur(22px) saturate(160%);
+            -webkit-backdrop-filter: blur(22px) saturate(160%);
             border: 1px solid var(--border);
-            box-shadow: 0 4px 14px rgba(15,23,42,0.04);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            max-width: 1100px; width: 100%;
+            padding: 30px; margin-bottom: 22px;
+            animation: entrar .5s cubic-bezier(.2,.8,.2,1) both;
+        }
+        @keyframes entrar { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        .seccion-dinamica {
+            background: var(--soft); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px; margin-top: 18px;
+            animation: entrar .35s ease both;
         }
 
-        /* ---------- 2.3 Pestañas ---------- */
+        /* ---------- 2.4 Tarjetas de tarea ---------- */
+        .task-label { font-size: 13px; font-weight: 600; color: var(--muted); margin: 6px 0 12px; display: block; }
+        .task-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .task-card {
+            text-align: left; cursor: pointer; padding: 18px; border-radius: var(--radius);
+            background: var(--card-solid); border: 1.5px solid var(--border); color: var(--text);
+            display: flex; flex-direction: column; gap: 6px; font-family: inherit;
+            transition: transform .2s, box-shadow .2s, border-color .2s;
+        }
+        .task-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary); }
+        .task-card.active {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(6,182,212,.10));
+            box-shadow: 0 0 0 4px rgba(99,102,241,.14);
+        }
+        .task-ico { font-size: 26px; }
+        .task-t { font-weight: 700; font-size: 15px; }
+        .task-d { font-size: 12px; color: var(--muted); }
+
+        /* ---------- 2.5 Pestañas (control segmentado) ---------- */
         .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 25px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
-            flex-wrap: wrap;
+            display: flex; gap: 6px; padding: 6px; margin-bottom: 26px; flex-wrap: wrap;
+            background: var(--soft); border: 1px solid var(--border); border-radius: 18px;
         }
         .tab-btn {
-            background: #eef2f7;
-            color: #475569;
-            border: 1px solid transparent;
-            padding: 11px 18px;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-            transition: 0.2s;
+            flex: 1 1 auto; background: transparent; border: 0; color: var(--muted);
+            padding: 12px 18px; border-radius: 13px; font-weight: 700; font-size: 14px;
+            cursor: pointer; font-family: inherit; transition: all .25s;
         }
-        .tab-btn:hover { background: #e2e8f0; color: var(--text); transform: translateY(-1px); }
+        .tab-btn:hover { color: var(--text); background: var(--chip); }
         .tab-btn.active {
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            color: white;
-            box-shadow: 0 5px 14px rgba(37,99,235,0.22);
+            color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            box-shadow: var(--glow);
         }
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        h2 { margin-top: 0; border-bottom: 2px solid var(--border); padding-bottom: 10px; color: #172033; }
-        h3 { color: #334155; }
+        .tab-content.active { display: block; animation: entrar .4s ease both; }
+        h2 { margin: 0 0 18px; font-size: 24px; font-weight: 800; letter-spacing: -.5px; border: 0; padding: 0; }
+        h3 { color: var(--text); font-size: 15px; font-weight: 700; margin: 22px 0 12px; }
+        h3::before { content: ""; display: inline-block; width: 4px; height: 14px; margin-right: 9px; vertical-align: -2px; border-radius: 4px; background: linear-gradient(var(--primary), var(--accent)); }
 
-        /* ---------- 2.4 Formularios y botones ---------- */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #334155; }
+        /* ---------- 2.6 Formularios y botones ---------- */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; margin-bottom: 7px; font-size: 13px; color: var(--muted); }
         input[type="text"], textarea, select {
-            width: 100%;
-            padding: 11px 12px;
-            border: 1px solid var(--border);
-            border-radius: 9px;
-            font-size: 14px;
-            background: #fff;
-            color: var(--text);
-            outline: none;
-            transition: 0.2s;
+            width: 100%; padding: 13px 15px; border-radius: 14px; font-size: 14px; font-family: inherit;
+            background: var(--card-solid); color: var(--text); border: 1.5px solid var(--border);
+            outline: none; transition: border-color .2s, box-shadow .2s;
         }
         input[type="text"]:focus, textarea:focus, select:focus {
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+            border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.15);
         }
-        textarea { resize: vertical; font-family: monospace; white-space: pre; }
+        textarea { resize: vertical; font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; font-size: 13px; white-space: pre; line-height: 1.6; }
         .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #fff7ed;
-            padding: 12px;
-            border-radius: 9px;
-            margin-bottom: 15px;
-            font-weight: bold;
-            color: #9a3412;
-            border: 1px solid #fed7aa;
+            display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+            padding: 12px 16px; margin-bottom: 16px; border-radius: 14px;
+            background: var(--chip) !important; color: var(--chip-text) !important;
+            border: 1px solid var(--border) !important; font-weight: 600; font-size: 13px;
         }
+        .checkbox-group label { margin: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; color: inherit !important; font-size: 13px; }
+        input[type="radio"], input[type="checkbox"] { accent-color: var(--primary); }
         button.action-btn {
-            background: linear-gradient(135deg, var(--primary), #3b82f6);
-            color: white;
-            border: none;
-            padding: 14px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-            transition: 0.2s;
-            box-shadow: 0 5px 14px rgba(37,99,235,0.18);
+            width: 100%; border: 0; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 15px;
+            padding: 15px 24px; border-radius: 15px; color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            box-shadow: var(--glow); transition: transform .2s, filter .2s;
         }
-        button.action-btn:hover {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            transform: translateY(-1px);
-        }
+        button.action-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+        button.action-btn:active { transform: scale(.98); }
 
-        /* ---------- 2.5 Pestaña MAPA (acceso externo) ---------- */
+        /* ---------- 2.7 Pestaña MAPA (acceso externo) ---------- */
         .mapa-acceso {
-            min-height: 260px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
-            border: 1px solid #bfdbfe;
-            border-radius: 16px;
-            padding: 35px 25px;
+            min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 40px 26px; border-radius: 24px; border: 1px dashed var(--primary);
+            background: linear-gradient(135deg, rgba(99,102,241,.10), rgba(6,182,212,.10));
         }
-        .mapa-icono { font-size: 58px; margin-bottom: 10px; }
-        .mapa-acceso p { color: var(--muted); max-width: 620px; line-height: 1.6; margin: 5px auto 22px; }
+        .mapa-icono { font-size: 64px; margin-bottom: 10px; animation: flota 3s ease-in-out infinite; }
+        @keyframes flota { 50% { transform: translateY(-8px); } }
+        .mapa-acceso p { color: var(--muted); max-width: 560px; line-height: 1.7; margin: 8px auto 24px; }
         .btn-mapa-externo {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            min-width: 230px;
-            background: linear-gradient(135deg, #0f766e, #14b8a6);
-            color: white;
-            border: none;
-            padding: 14px 26px;
-            border-radius: 11px;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 7px 18px rgba(20,184,166,0.22);
-            transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 10px; min-width: 230px; justify-content: center;
+            border: 0; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 16px; color: #fff;
+            padding: 15px 28px; border-radius: 16px; background: linear-gradient(135deg, #0891b2, #6366f1);
+            box-shadow: 0 10px 28px -6px rgba(8,145,178,.6); transition: transform .2s;
         }
-        .btn-mapa-externo:hover { background: linear-gradient(135deg, #115e59, #0f766e); transform: translateY(-1px); }
+        .btn-mapa-externo:hover { transform: translateY(-3px) scale(1.02); }
 
-        /* ---------- 2.6 Mapas y paleta flotante (KML) ---------- */
+        /* ---------- 2.8 Mapas y paleta flotante (KML) ---------- */
         .map-header { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; gap: 10px; }
-        .map-header h3 { margin: 0; border: none; padding: 0; }
-        #map, #mapSingle, #mapKml { height: 420px; width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); z-index: 1; }
-
+        #map, #mapSingle, #mapKml {
+            height: 440px; width: 100%; border-radius: 22px; margin-top: 10px; z-index: 1;
+            border: 1px solid var(--border); box-shadow: var(--shadow);
+        }
         .kml-mapa-wrapper { position: relative; }
         .k-paleta-mapa {
-            position: absolute;
-            z-index: 1000;
-            top: 25px;
-            left: 25px;
-            width: 285px;
-            max-width: calc(100% - 50px);
-            background: rgba(255,255,255,0.97);
-            border: 1px solid rgba(226,229,245,0.95);
-            border-radius: 14px;
-            padding: 14px;
-            box-shadow: 0 12px 30px rgba(15,23,42,0.18), 0 2px 8px rgba(15,23,42,0.08);
-            backdrop-filter: blur(8px);
+            position: absolute; z-index: 1000; top: 25px; left: 25px; width: 285px; max-width: calc(100% - 50px);
+            background: var(--card); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border: 1px solid var(--border); border-radius: 20px; padding: 16px; box-shadow: var(--shadow);
         }
-        .k-paleta-titulo {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            font-weight: 700;
-            color: var(--text);
-            font-size: 14px;
-            padding-bottom: 9px;
-            border-bottom: 1px solid var(--border);
-        }
+        .k-paleta-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
         .k-paleta-titulo span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .k-paleta-titulo button {
-            width: 28px;
-            height: 28px;
-            flex: 0 0 28px;
-            border: none;
-            border-radius: 8px;
-            background: #f1f5f9;
-            color: #64748b;
-            font-size: 20px;
-            line-height: 1;
-            cursor: pointer;
-        }
-        .k-paleta-titulo button:hover { background: #e2e8f0; color: #1e293b; }
-        .k-paleta-subtitulo { font-size: 12px; color: var(--muted); margin: 10px 0 8px; }
-        .k-paleta-colores { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; }
-        .k-paleta-color {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 0 1px #dbe1ea;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            padding: 0;
-        }
-        .k-paleta-color:hover { transform: scale(1.18); }
-        .k-paleta-color.selected { box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary); transform: scale(1.12); }
-        @media (max-width: 700px) {
-            .k-paleta-mapa { width: 250px; top: 12px; left: 12px; }
-            .k-paleta-colores { grid-template-columns: repeat(7, 1fr); }
-        }
+        .k-paleta-titulo button { width: 28px; height: 28px; flex: 0 0 28px; border: 0; border-radius: 9px; background: var(--chip); color: var(--muted); font-size: 18px; cursor: pointer; }
+        .k-paleta-titulo button:hover { color: var(--text); }
+        .k-paleta-subtitulo { font-size: 12px; color: var(--muted); margin: 10px 0 10px; }
+        .k-paleta-colores { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+        .k-paleta-color { width: 25px; height: 25px; padding: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(148,163,184,.5); cursor: pointer; transition: transform .15s; }
+        .k-paleta-color:hover { transform: scale(1.2); }
+        .k-paleta-color.selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary); transform: scale(1.12); }
+        .leaflet-popup-content-wrapper { border-radius: 16px; }
+        .leaflet-control-zoom { border: 0 !important; box-shadow: var(--shadow) !important; border-radius: 14px !important; overflow: hidden; }
 
-        /* ---------- 2.7 Tablas, resultados y mensajes ---------- */
+        /* ---------- 2.9 Tablas, resultados y mensajes ---------- */
         .resultados { display: none; margin-top: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-        th, td { border: 1px solid var(--border); padding: 10px; text-align: center; }
-        th { background-color: var(--surface-soft); color: #334155; }
-        .resumen { background: #ecfdf5; border: 1px solid #bbf7d0; padding: 15px; border-radius: 9px; margin-top: 20px; font-size: 16px; font-weight: bold; text-align: center; color: #166534; }
-        .btn-link { display: inline-block; background: var(--success); color: white; padding: 10px 18px; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; transition: 0.2s; font-size: 14px; }
-        .btn-link:hover { background: #15803d; }
-        .error { color: var(--danger); font-weight: bold; margin-top: 10px; display: none; }
-        .loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: var(--primary); }
+        table {
+            width: 100%; margin-top: 18px; font-size: 13px; border-collapse: separate; border-spacing: 0;
+            border: 1px solid var(--border); border-radius: 18px; overflow: hidden; background: var(--card-solid);
+        }
+        th { background: var(--chip); color: var(--chip-text); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; padding: 13px 10px; }
+        td { padding: 12px 10px; text-align: center; border-top: 1px solid var(--border); }
+        th { text-align: center; }
+        tbody tr { transition: background .15s; }
+        tbody tr:hover { background: var(--chip); }
+        .resumen {
+            margin-top: 20px; padding: 18px; border-radius: 18px; text-align: center; font-size: 17px; font-weight: 800;
+            color: #fff; background: linear-gradient(135deg, #10b981, #06b6d4); box-shadow: 0 10px 28px -8px rgba(16,185,129,.55);
+        }
+        .btn-link {
+            display: inline-flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer; font-family: inherit;
+            padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 14px; color: #fff;
+            background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 22px -8px rgba(16,185,129,.6);
+            transition: transform .2s, filter .2s;
+        }
+        .btn-link:hover { transform: translateY(-2px); filter: brightness(1.08); }
+        .error { color: var(--danger); font-weight: 600; margin-top: 12px; display: none; padding: 12px 16px; border-radius: 14px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); }
+        .loader { display: none; text-align: center; margin-top: 20px; font-weight: 600; color: var(--primary); }
 
-        /* ---------- 2.8 Responsive ---------- */
-        @media (max-width: 700px) {
-            body { padding: 12px; }
-            .container { padding: 18px; border-radius: 14px; }
-            .grid { grid-template-columns: 1fr; }
-            .tabs { gap: 6px; }
-            .tab-btn { flex: 1 1 auto; padding: 10px 12px; }
+        /* ---------- 2.10 Responsive ---------- */
+        @media (max-width: 760px) {
+            body { padding: 0 12px 30px; }
+            .container, .panel-inicial { padding: 18px; border-radius: 22px; }
+            .grid, .task-cards { grid-template-columns: 1fr; }
+            .tab-btn { padding: 11px 12px; }
+            .status-pill { display: none; }
+            h2 { font-size: 20px; }
         }
     </style>
 </head>
 <body>
+
+<!-- ============================================== -->
+<!-- 2B. BARRA SUPERIOR                             -->
+<!-- ============================================== -->
+<header class="topbar">
+    <div class="brand">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></svg>
+        </div>
+        <div>
+            <div class="brand-title">Gestor de Rutas</div>
+            <div class="brand-sub">Rutas · Distancias · KML</div>
+        </div>
+    </div>
+    <div class="status-pill"><span class="dot"></span> Sistema activo</div>
+</header>
+
 
 <!-- ============================================== -->
 <!-- 3. PANEL PRINCIPAL (GESTOR)                    -->
@@ -324,8 +340,19 @@ PARTE JAVASCRIPT
 
     <!-- 3.1 Selector de tarea -->
     <div class="form-group">
-        <label>¿Qué tarea vas a realizar hoy?</label>
-        <select id="main-selector" onchange="manejarSeleccionPrincipal()">
+        <label class="task-label">¿Qué tarea vas a realizar hoy?</label>
+        <div class="task-cards">
+            <button type="button" class="task-card" data-task="nuevo" onclick="elegirTarea('nuevo')">
+                <span class="task-ico">📌</span><span class="task-t">Proceso nuevo</span><span class="task-d">Guarda resultados en la bitácora</span>
+            </button>
+            <button type="button" class="task-card" data-task="consulta" onclick="elegirTarea('consulta')">
+                <span class="task-ico">🔍</span><span class="task-t">Consultar proceso</span><span class="task-d">Revisa la bitácora guardada</span>
+            </button>
+            <button type="button" class="task-card" data-task="libre" onclick="elegirTarea('libre')">
+                <span class="task-ico">🚀</span><span class="task-t">Uso libre</span><span class="task-d">Rutas sin bitácora</span>
+            </button>
+        </div>
+        <select id="main-selector" style="display:none" onchange="manejarSeleccionPrincipal()">
             <option value="">Selecciona una opción...</option>
             <option value="nuevo">📌 1. Proceso Nuevo (Guardar en Bitácora)</option>
             <option value="consulta">🔍 2. Consulta de Proceso (Ver Bitácora)</option>
@@ -600,6 +627,13 @@ PARTE JAVASCRIPT
     // =========================================================
     // J3. GESTOR PRINCIPAL (SELECTOR Y PROCESO NUEVO)
     // =========================================================
+    // Tarjetas de tarea: sincronizan el selector oculto y ejecutan la lógica original
+    function elegirTarea(valor) {
+        document.getElementById('main-selector').value = valor;
+        document.querySelectorAll('.task-card').forEach(c => c.classList.toggle('active', c.dataset.task === valor));
+        manejarSeleccionPrincipal();
+    }
+
     function manejarSeleccionPrincipal() {
         let val = document.getElementById('main-selector').value;
         document.getElementById('panel-nuevo').style.display = (val === 'nuevo') ? 'block' : 'none';
