@@ -77,15 +77,15 @@ PARTE JAVASCRIPT
             --border: rgba(148,163,184,.28);
             --text: #0f172a;
             --muted: #64748b;
-            --primary: #6366f1;
-            --primary-2: #8b5cf6;
-            --accent: #06b6d4;
+            --primary: #265b4e;
+            --primary-2: #3d8b74;
+            --accent: #7bc4ab;
             --success: #10b981;
             --danger: #ef4444;
-            --chip: rgba(99,102,241,.08);
-            --chip-text: #4338ca;
+            --chip: rgba(38,91,78,.08);
+            --chip-text: #1f4d41;
             --shadow: 0 10px 40px -12px rgba(30,41,90,.18);
-            --glow: 0 8px 24px -6px rgba(99,102,241,.55);
+            --glow: 0 8px 24px -6px rgba(38,91,78,.55);
             --radius: 20px;
         }
         @media (prefers-color-scheme: dark) {
@@ -97,8 +97,10 @@ PARTE JAVASCRIPT
                 --border: rgba(148,163,184,.16);
                 --text: #e8ecfb;
                 --muted: #94a3b8;
-                --chip: rgba(129,140,248,.14);
-                --chip-text: #c7d2fe;
+                --primary: #4fa58e;
+                --primary-2: #2f7a66;
+                --chip: rgba(110,190,165,.16);
+                --chip-text: #bfe6d8;
                 --shadow: 0 14px 50px -14px rgba(0,0,0,.7);
             }
         }
@@ -121,8 +123,8 @@ PARTE JAVASCRIPT
             content: ""; position: fixed; z-index: -1; border-radius: 50%;
             filter: blur(90px); opacity: .55; pointer-events: none;
         }
-        body::before { width: 520px; height: 520px; top: -160px; left: -120px; background: radial-gradient(circle, #818cf8, transparent 70%); }
-        body::after  { width: 560px; height: 560px; bottom: -200px; right: -140px; background: radial-gradient(circle, #22d3ee, transparent 70%); }
+        body::before { width: 520px; height: 520px; top: -160px; left: -120px; background: radial-gradient(circle, #3d8b74, transparent 70%); }
+        body::after  { width: 560px; height: 560px; bottom: -200px; right: -140px; background: radial-gradient(circle, #7bc4ab, transparent 70%); }
         @media (prefers-color-scheme: dark) { body::before, body::after { opacity: .28; } }
 
         /* ---------- 2.2 Barra superior ---------- */
@@ -179,8 +181,8 @@ PARTE JAVASCRIPT
         .task-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary); }
         .task-card.active {
             border-color: var(--primary);
-            background: linear-gradient(135deg, rgba(99,102,241,.14), rgba(6,182,212,.10));
-            box-shadow: 0 0 0 4px rgba(99,102,241,.14);
+            background: linear-gradient(135deg, rgba(38,91,78,.14), rgba(123,196,171,.10));
+            box-shadow: 0 0 0 4px rgba(38,91,78,.14);
         }
         .task-ico { font-size: 26px; }
         .task-t { font-weight: 700; font-size: 15px; }
@@ -217,7 +219,7 @@ PARTE JAVASCRIPT
             outline: none; transition: border-color .2s, box-shadow .2s;
         }
         input[type="text"]:focus, textarea:focus, select:focus {
-            border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,.15);
+            border-color: var(--primary); box-shadow: 0 0 0 4px rgba(38,91,78,.15);
         }
         textarea { resize: vertical; font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; font-size: 13px; white-space: pre; line-height: 1.6; }
         .checkbox-group {
@@ -241,7 +243,7 @@ PARTE JAVASCRIPT
         .mapa-acceso {
             min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center;
             text-align: center; padding: 40px 26px; border-radius: 24px; border: 1px dashed var(--primary);
-            background: linear-gradient(135deg, rgba(99,102,241,.10), rgba(6,182,212,.10));
+            background: linear-gradient(135deg, rgba(38,91,78,.10), rgba(123,196,171,.10));
         }
         .mapa-icono { font-size: 64px; margin-bottom: 10px; animation: flota 3s ease-in-out infinite; }
         @keyframes flota { 50% { transform: translateY(-8px); } }
@@ -249,8 +251,8 @@ PARTE JAVASCRIPT
         .btn-mapa-externo {
             display: inline-flex; align-items: center; gap: 10px; min-width: 230px; justify-content: center;
             border: 0; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 16px; color: #fff;
-            padding: 15px 28px; border-radius: 16px; background: linear-gradient(135deg, #0891b2, #6366f1);
-            box-shadow: 0 10px 28px -6px rgba(8,145,178,.6); transition: transform .2s;
+            padding: 15px 28px; border-radius: 16px; background: linear-gradient(135deg, #3d8b74, #265b4e);
+            box-shadow: 0 10px 28px -6px rgba(38,91,78,.6); transition: transform .2s;
         }
         .btn-mapa-externo:hover { transform: translateY(-3px) scale(1.02); }
 
@@ -291,7 +293,7 @@ PARTE JAVASCRIPT
         tbody tr:hover { background: var(--chip); }
         .resumen {
             margin-top: 20px; padding: 18px; border-radius: 18px; text-align: center; font-size: 17px; font-weight: 800;
-            color: #fff; background: linear-gradient(135deg, #10b981, #06b6d4); box-shadow: 0 10px 28px -8px rgba(16,185,129,.55);
+            color: #fff; background: linear-gradient(135deg, #2f7a66, #7bc4ab); box-shadow: 0 10px 28px -8px rgba(16,185,129,.55);
         }
         .btn-link {
             display: inline-flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer; font-family: inherit;
@@ -1582,7 +1584,7 @@ PARTE JAVASCRIPT
                             ${escaparHTML(p.d1)}
                         </span>
                         <br><br>
-                        <span style="font-size:11px;color:#6366f1;">
+                        <span style="font-size:11px;color:#265b4e;">
                             🎨 Haz clic en el pin para cambiar su color
                         </span>
                     </div>
