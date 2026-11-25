@@ -1068,7 +1068,7 @@ PARTE JAVASCRIPT
         const lineas = document.getElementById('m_waypoints').value.trim().split('\n');
         lineas.forEach((linea, idx) => {
             const p = linea.split(/,|\t/).map(x => x.trim());
-            if(p.length >= 2) puntos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Parada ${idx+1}` });
+            if(p.length >= 2 && !isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) puntos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Parada ${idx+1}` });
         });
         if (document.getElementById('m_regreso').checked) puntos.push({ lat: oLat, lon: oLon, nombre: 'Regreso a Origen' });
         if (puntos.length < 2) { mostrarError('m', "Puntos insuficientes."); document.getElementById('m_loader').style.display = 'none'; return; }
@@ -1136,7 +1136,7 @@ PARTE JAVASCRIPT
         let destinos = [];
         document.getElementById('s_destinos').value.trim().split('\n').forEach((l, i) => {
             let p = l.split(/,|\t/).map(x => x.trim());
-            if(p.length >= 2) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
+            if(p.length >= 2 && !isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) destinos.push({ lat: parseFloat(p[0]), lon: parseFloat(p[1]), nombre: p[2] || `Dest ${i+1}` });
         });
 
         let promesas = destinos.map(d => {
@@ -1498,7 +1498,7 @@ PARTE JAVASCRIPT
         lineas.forEach((l, i) => {
             let p = l.split(/,|\t/).map(x => x.trim());
 
-            if (p.length >= 2 && !isNaN(parseFloat(p[0]))) {
+            if (p.length >= 2 && !isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) {
                 let obj = {
                     lat: p[0],
                     lon: p[1],
